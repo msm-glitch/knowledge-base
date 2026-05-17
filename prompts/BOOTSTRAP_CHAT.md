@@ -118,7 +118,57 @@ Priority:
 - Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
 - Low: 1 wystąpienie, warto zapamiętać
 
-## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+## PHASE 5.5: DUAL-PASS + QUALITY GATES
+
+**Pass 1 (draft):** Zbierz wszystkie kandydatów w pamięci. NIE zapisuj jeszcze do Notion.
+
+**Pass 2 (weryfikacja):** Dla każdego draftu przejdź checklist:
+```
+[ ] Skip rules: nie meta, nie "stan skilla bez konkretu", nie jednorazowe
+[ ] Cross-check z config/skills_catalog.yaml:
+    - fuzzy match nazwy → jeśli skill już istnieje → wymuś [FIX]
+    - jeśli na skip_meta → POMIŃ wpis
+[ ] Source URL wypełniony (lub jawnie "—")
+[ ] User = autor wzorca, nie skanujący (mapuj email→Notion Person ID)
+[ ] Date = data oryginalnego zdarzenia, nie dziś
+[ ] Title z prefiksem [NEW]/[FIX]/[BUG]
+[ ] Summary: liczba wystąpień + dowód (link) + konkret co naprawić
+```
+
+Jeśli ≥1 fail → popraw lub odrzuć. Tylko ✅ → zapis.
+
+### Few-shot — naucz się z prawdziwych przypadków:
+
+**✅ DOBRY [FIX]:**
+```
+[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów
+Priority: High (5× miss = intra-source intensity)
+Source: [Claude Chat] | URL: https://claude.ai/chat/abc
+Date: 2026-05-11 (nie dziś!)
+Summary: Skill off-brand-voice v3.3 nie odpala dla 'podopieczni'/'stypendyści'.
+  5× ręczne przepisanie 5-11.05. Fix: dodać do triggerKeywords + description.
+```
+
+**✅ DOBRY [NEW] n8n:**
+```
+[NEW] 2026-05-15 · Maciek · Masowy outreach do MR — szablon ×10+
+Priority: High (10+ wystąpień + cross-source 2)
+Source: [Gmail, Claude Chat] | URL: https://mail.google.com/.../thread-xyz
+Date: 2026-05-15
+Summary: 10+ maili do Młodzieżowych Rad z identycznym szablonem, tylko nazwa rady różna.
+  Cross-source: Gmail wysyłka + Chat draft. n8n: lista → personalizacja → auto-send.
+  Oszczędność ~2h/kampanię.
+```
+
+**❌ ZŁE — odrzucaj/poprawiaj:**
+- `Weekly Knowledge Scan — automatyzacja` → META, POMIŃ
+- `Ewidencja godzinowa — wymaga doprecyzowania` → za ogólne + skill już istnieje → [FIX]
+- `User: Maciek` dla Slack-post Michała → wrong attribution, User = Michał
+- `Date: 2026-05-17` (dzień skanu) → powinno być data oryginalnego zdarzenia
+
+---
+
+## PHASE 5.5b: QUALITY GATES (legacy — zachowane dla pełności)
 
 ❌ **NIE ZAPISUJ jeśli:**
 - Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta — to ten sam skill)

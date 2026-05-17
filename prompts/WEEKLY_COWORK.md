@@ -72,7 +72,21 @@ Tylko NOWE wzorce (nie ma ich jeszcze w Notion Knowledge Base):
 | Trigger + sekwencja między narzędziami | n8n Automation |
 | Jednorazowe | POMIŃ |
 
-## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+## PHASE 5.5: DUAL-PASS + QUALITY GATES
+
+**Pass 1:** Zbierz drafty w pamięci. **Pass 2:** Checklist przed zapisem:
+```
+[ ] Skip: meta / "stan skilla" / jednorazowe → odrzuć
+[ ] Cross-check z config/skills_catalog.yaml — match? → [FIX]; skip_meta? → POMIŃ
+[ ] Source URL / User=autor / Date=oryginał / Title [NEW|FIX|BUG] / Summary z konkretem
+```
+
+**✅ DOBRY:** `[NEW] 2026-05-15 · Maciek · Masowy outreach MR — ×10+, Gmail+Chat`
+**❌ ZŁY:** meta / "wymaga doprecyzowania" (za ogólne) / User=skanujący (zła atrybucja)
+
+---
+
+## PHASE 5.5b: QUALITY GATES (legacy)
 
 ❌ **NIE ZAPISUJ jeśli:** meta-wpisy (knowledge-base, WSD), "stan istniejącego skilla" bez konkretu, jednorazowe momenty.
 

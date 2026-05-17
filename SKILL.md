@@ -123,7 +123,99 @@ Wątpliwe wpisy → `Needs review = true` (to pole jest w Sessions DB, w Knowled
 
 ---
 
-## Krok 3: Klasyfikacja odkryć
+## Krok 3: Klasyfikacja odkryć — DUAL-PASS
+
+### Pass 1 — DRAFT (bez zapisu)
+
+Zbierz wszystkie kandydatów na wpisy w pamięci (lista draftów). NIE zapisuj jeszcze do Notion.
+
+Dla każdego draftu wypełnij wszystkie pola według Krok 3.5 (Quality gates).
+
+### Pass 2 — WERYFIKACJA (przed zapisem)
+
+Dla każdego draftu sprawdź:
+
+```
+[ ] 1. Czy wpis przeszedł SKIP RULES? (meta, "stan istniejącego skilla", jednorazowe)
+[ ] 2. Czy proponowana nazwa skilla/SOPa istnieje już w config/skills_catalog.yaml?
+       → fuzzy match na: base_off + extended_uao + extended_extra
+       → JEŚLI MATCH: wymuś [FIX] zamiast [NEW]
+       → JEŚLI w skip_meta: POMIŃ wpis całkowicie
+[ ] 3. Czy Source URL jest wypełniony (lub jawnie "—")?
+[ ] 4. Czy User to oryginalny autor wzorca (nie skanujący)?
+[ ] 5. Czy Date to data zdarzenia (nie dziś)?
+[ ] 6. Czy Title ma prefix [NEW]/[FIX]/[BUG]?
+[ ] 7. Czy Summary daje konkret z liczbą wystąpień + dowodem + co naprawić?
+```
+
+Jeśli ≥1 check fail → popraw draft LUB odrzuć do `rejected_drafts.log`.
+Dopiero po wszystkich ✅ → zapis do Notion.
+
+### Few-shot examples — UCZ SIĘ Z PRAWDZIWYCH PRZYPADKÓW
+
+#### ✅ DOBRE wpisy (zachowaj ten format):
+
+**Przykład 1 — [FIX] z konkretnymi dowodami:**
+```
+Title: [FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów
+Type: Skill Backlog
+Priority: High (5× miss w jednym źródle = intra-source intensity High)
+Source: [Claude Chat]
+Source URL: https://claude.ai/chat/abc-2026-05-11
+Date: 2026-05-11  ← data NAJNOWSZEGO miss-a
+User: Michał (Notion Person ID)
+Summary: Skill off-brand-voice v3.3 nie odpala dla 'podopieczni'/'stypendyści'/
+  'laureaci' — 5× ręczne przepisanie w Chat (5-11.05). Trigger w SKILL.md zawiera
+  tylko 'wolontariusze'. Fix: dodać 3 słowa do triggerKeywords + description.
+```
+
+**Przykład 2 — [NEW] n8n z cross-source:**
+```
+Title: [NEW] 2026-05-15 · Maciek · Masowy outreach do MR — ten sam szablon ×10+
+Type: n8n Automation
+Priority: High (10+ wystąpień + cross-source 2)
+Source: [Gmail, Claude Chat]
+Source URL: https://mail.google.com/mail/u/0/#sent/thread-id-xyz
+Date: 2026-05-15
+User: Maciek
+Summary: 10+ maili do MR (Młodzieżowe Rady Miast) z identycznym szablonem promocji
+  PM OFF, tylko nazwa rady różna. Maciek pisał ręcznie + Claude pomagał stylem
+  (cross-source: Gmail wysyłka + Chat draft). Oszczędność ~2h/kampanię.
+  n8n workflow: lista MR → personalizacja nazwy → auto-send.
+```
+
+#### ❌ ZŁE wpisy (poprawiaj/odrzucaj):
+
+**Anti-przykład 1 — meta:**
+```
+Title: Weekly Knowledge Scan — pełna automatyzacja
+  ↑ META! To jest TEN skill który właśnie się uruchomił. POMIŃ.
+```
+
+**Anti-przykład 2 — brak konkretu:**
+```
+Title: 2026-05-17 · Maciek · Ewidencja godzinowa — wymaga doprecyzowania
+Summary: "Skill działa ale wymaga doprecyzowania"
+  ↑ Za ogólne. Brak liczby wystąpień, brak konkretu co naprawić.
+  ↑ Cross-check: skill 'ewidencja-godzinowa-miesieczna' istnieje
+    → powinno być [FIX], nie [NEW]
+```
+
+**Anti-przykład 3 — błędna atrybucja:**
+```
+Title: 2026-05-17 · Maciek · CRM-Rejs sync — KRYTYCZNY (WSD)
+User: Maciek
+  ↑ Wzorzec dotyczy Michała (Michał zgłosił na Slacku, Maciek tylko widział)
+  ↑ User powinien być Michał
+```
+
+**Anti-przykład 4 — data dziś zamiast oryginału:**
+```
+Date: 2026-05-17 (dzień skanowania)
+  ↑ Powinno być data ostatniego wystąpienia wzorca (np. 2026-05-11)
+```
+
+---
 
 ### Kryteria (z diagramu przepływu):
 

@@ -65,7 +65,22 @@ Identyczne jak w bootstrapie (PHASE 2-4), ale `since=-7d`.
 
 Tylko NOWE wzorce nieobecne jeszcze w Notion Knowledge Base DB.
 
-## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+## PHASE 5.5: DUAL-PASS + QUALITY GATES
+
+**Pass 1:** Zbierz drafty w pamięci. **Pass 2:** Checklist przed zapisem:
+```
+[ ] Skip: meta / "stan skilla" / jednorazowe → odrzuć
+[ ] Cross-check z config/skills_catalog.yaml — match? → [FIX]; skip_meta? → POMIŃ
+[ ] Source URL = JSONL path + session ID / User = autor (git email → Notion ID)
+[ ] Date = timestamp JSONL (nie dziś) / Title [NEW|FIX|BUG] / Summary z konkretem
+```
+
+**✅ DOBRY:** `[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni'` + JSONL path
+**❌ ZŁY:** meta-wpisy, User=skanujący (gdy autor=inny), Date=dziś
+
+---
+
+## PHASE 5.5b: QUALITY GATES (legacy)
 
 ❌ **NIE ZAPISUJ jeśli:** meta-wpisy (knowledge-base, WSD), "stan istniejącego skilla" bez konkretu, jednorazowe momenty.
 

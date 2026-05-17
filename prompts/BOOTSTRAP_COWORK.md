@@ -108,7 +108,29 @@ Priority:
 - Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
 - Low: 1 wystąpienie, warto zapamiętać
 
-## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+## PHASE 5.5: DUAL-PASS + QUALITY GATES
+
+**Pass 1 (draft):** Zbierz kandydatów w pamięci. NIE zapisuj.
+
+**Pass 2 (weryfikacja) — checklist każdego draftu:**
+```
+[ ] Skip rules: nie meta, nie "stan skilla", nie jednorazowe
+[ ] Cross-check z config/skills_catalog.yaml — istnieje? → [FIX]; na skip_meta? → POMIŃ
+[ ] Source URL wypełniony lub "—"
+[ ] User = autor wzorca (mapuj email→Notion Person ID)
+[ ] Date = data oryginalnego zdarzenia
+[ ] Title [NEW]/[FIX]/[BUG]
+[ ] Summary: liczba × + dowód + konkret
+```
+
+### Few-shot:
+
+**✅ DOBRY:** `[NEW] 2026-05-15 · Maciek · Masowy outreach MR — ×10+, Gmail+Chat, ~2h/kampanię`
+**❌ ZŁY:** `Weekly Knowledge Scan` (meta) / `User: Maciek` dla problemu Michała / `Date: dziś`
+
+---
+
+## PHASE 5.5b: QUALITY GATES (legacy)
 
 ❌ **NIE ZAPISUJ jeśli:**
 - Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta)

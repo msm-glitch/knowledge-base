@@ -1,0 +1,105 @@
+# Katalog skilli OFF — cross-check reference dla knowledge-base
+# Źródło: KATALOG_SKILLI_OFF.md v1.3 (Drive, 2026-04-08) + KATALOG_SKILLI_EXTENDED.md v1.0
+#
+# UŻYCIE: skill knowledge-base ładuje tę listę PRZED oznaczeniem wpisu jako [NEW].
+# Jeśli match na nazwie lub triggerze → wymuś [FIX] zamiast [NEW].
+
+version: "1.3"
+last_updated: "2026-04-08"
+total_skills: 24  # 19 base OFF + 5 extended UAO
+
+# 19 OBOWIĄZKOWYCH base OFF (KATALOG_SKILLI_OFF.md v1.3)
+base_off:
+  # Narzędzia dokumentowe
+  - name: docx
+    triggers: ["Word", "dokument Word", ".docx", "stwórz dokument", "raport", "memo", "pismo"]
+  - name: pdf
+    triggers: ["PDF", ".pdf", "scal PDF", "podziel PDF", "wyciągnij tekst z PDF", "formularz"]
+  - name: pptx
+    triggers: ["prezentacja", "PowerPoint", ".pptx", "slajdy", "deck", "pitch deck"]
+  - name: xlsx
+    triggers: ["Excel", "arkusz", ".xlsx", "tabela danych", "budżet", "model finansowy", "wykres"]
+
+  # Komunikacja i outreach
+  - name: meeting-brief
+    triggers: ["brief ze spotkania", "podsumuj spotkanie", "notatka ze spotkania", "spotkanie z partnerem", "follow-up po spotkaniu"]
+  - name: vip-correspondence
+    triggers: ["pismo do ministra", "korespondencja VIP", "zaproszenie oficjalne", "list formalny", "podziękowanie dla dyrektora"]
+  - name: polish-declension-checker
+    triggers: ["sprawdź odmianę", "deklinacja", "odmiana nazwy", "jak odmienić", "popraw nazwy własne"]
+  - name: sms-outreach
+    triggers: ["napisz SMS", "kampania SMS", "wiadomość do licealistów", "rekrutacja PM", "Brevo", "wersja dla dziewczyn/chłopaków", "outreach młodzież", "wiadomość do wolontariuszy"]
+  - name: recruitment-coaching
+    triggers: ["przygotuj mnie do rozmowy rekrutacyjnej", "coaching rozmów", "roleplay rekrutacyjny", "rozmowa z kandydatem PM"]
+
+  # Zarządzanie wiedzą
+  - name: karta-wiedzy
+    triggers: ["karta wiedzy", "podsumuj sesję", "zamknij sesję"]
+  - name: knowledge-base-updater
+    triggers: ["zaktualizuj bazę wiedzy", "dodaj do memory"]
+  - name: media-asset-matcher
+    triggers: ["dopasuj zdjęcia", "match photos", "asset matching"]
+
+  # Produktywność
+  - name: daily-planner
+    triggers: ["plan dnia", "poranny briefing", "co dziś robię"]
+  - name: file-organizer
+    triggers: ["uporządkuj pliki", "posortuj", "batch rename"]
+  - name: product-research
+    triggers: ["porównaj produkty", "co kupić", "research produktu"]
+  - name: schedule
+    triggers: ["zaplanuj", "schedule", "scheduled task", "cykliczne zadanie"]
+
+  # Tworzenie i rozwój skilli
+  - name: ai-onboarding-generator
+    triggers: ["onboarding AI", "szkolenie z AI", "materiały wdrożeniowe"]
+  - name: prompt-builder
+    triggers: ["zbuduj prompt", "pomóż mi z promptem", "kreator promptów"]
+  - name: skill-creator
+    triggers: ["stwórz skill", "nowy skill", "buduj skill"]
+
+# 5 OPCJONALNE Extended UAO (KATALOG_SKILLI_EXTENDED.md)
+extended_uao:
+  - name: project-update
+    triggers: ["update projektu", "status update", "weekly status", "monthly report", "raport projektu", "raport statusowy", "weekly report"]
+  - name: followup-mail
+    triggers: ["follow-up email", "mail po spotkaniu", "napisz maila do", "email po rozmowie", "thank you email"]
+  - name: internal-comms
+    triggers: ["3P update", "newsletter zespołowy", "FAQ wewnętrzna", "incident report", "all-hands announcement"]
+  - name: theme-factory
+    triggers: ["branduj prezentację", "stylizuj dokument", "theme"]
+  - name: doc-coauthoring
+    triggers: ["współpisanie", "doc coauthoring", "redaguj razem"]
+
+# Dodatkowo wzmiankowane w bootstrap (extended-extended, do potwierdzenia z Wojciechem)
+extended_extra:
+  - name: off-brand-voice
+    triggers: ["napisz wiadomość do wolontariusza", "wiadomość OFF style", "ton OFF"]
+    note: "v3.3 — depersonalizacja. BUG: nie odpala dla 'podopieczni', 'stypendyści', 'laureaci'"
+  - name: volunteer-message
+    triggers: ["wiadomość do wolontariusza", "message volunteer"]
+    note: "Współpracuje z off-brand-voice"
+  - name: weekly-discovery
+    triggers: ["weekly skill discovery", "WSD", "skill discovery"]
+    note: "META — skip w knowledge-base scan"
+  - name: team-knowledge-base
+    triggers: ["zapisz sesję", "team knowledge base"]
+    note: "META — skip w knowledge-base scan"
+  - name: ewidencja-godzinowa-miesieczna
+    triggers: ["ewidencja godzinowa", "kategorie I-T", "miesięczne godziny"]
+    note: "Slash command /ewidencja-godzinowa-miesieczna"
+
+# Meta-skille do AUTOMATIC SKIP w klasyfikacji (nie zapisuj jako odkrycia)
+skip_meta:
+  - knowledge-base
+  - weekly-discovery
+  - team-knowledge-base
+  - WSD
+  - "Weekly Skill Discovery"
+  - "knowledge-base-scanner"
+
+# Sugestia użycia (Pass 2 weryfikator):
+# 1. Pobierz proponowaną nazwę nowego skilla
+# 2. Fuzzy match (Levenshtein <=3 ALBO substring match) z base_off + extended_uao + extended_extra
+# 3. Jeśli match → wymuś Title prefix [FIX] zamiast [NEW]
+# 4. Jeśli proponowana nazwa jest na skip_meta → POMIŃ wpis całkowicie

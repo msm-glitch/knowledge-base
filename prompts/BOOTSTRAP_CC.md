@@ -155,7 +155,41 @@ Priority:
 - Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
 - Low: 1 wystąpienie, warto zapamiętać
 
-## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+## PHASE 5.5: DUAL-PASS + QUALITY GATES
+
+**Pass 1 (draft):** Zbierz kandydatów w pamięci. NIE zapisuj.
+
+**Pass 2 (weryfikacja) — checklist każdego draftu:**
+```
+[ ] Skip rules: nie meta (knowledge-base/WSD/etc), nie "stan skilla", nie jednorazowe
+[ ] Cross-check z config/skills_catalog.yaml:
+    - fuzzy match z base_off + extended_uao + extended_extra → [FIX]
+    - jeśli na skip_meta → POMIŃ
+[ ] Source URL = ścieżka JSONL + session ID (lub "—")
+[ ] User = autor wzorca (mapuj git config email→Notion Person ID z config/notion.yaml)
+[ ] Date = timestamp z JSONL (nie dziś)
+[ ] Title [NEW]/[FIX]/[BUG]
+[ ] Summary: liczba × + link + konkret
+```
+
+### Few-shot:
+
+**✅ DOBRY:**
+```
+[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni'
+Source URL: ~/.claude/projects/cwd-x/session-2026-05-11.jsonl
+Summary: 5× miss w sessions 5-11.05, fix: triggerKeywords + description.
+```
+
+**❌ ZŁE:**
+- `Weekly Knowledge Scan` (meta — to ten skill)
+- `[NEW] Ewidencja godzinowa` (skill istnieje → [FIX])
+- `User: skanujący` dla wzorca obserwowanego u innego usera
+- `Date: dziś` (powinno być timestamp z JSONL)
+
+---
+
+## PHASE 5.5b: QUALITY GATES (legacy)
 
 ❌ **NIE ZAPISUJ jeśli:**
 - Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta — to ten sam skill)
