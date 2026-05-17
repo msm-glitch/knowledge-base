@@ -72,7 +72,41 @@ Przeczytaj i potwierdź że rozumiesz:
 - Odczytaj `config/notion.yaml` i `config/sources.yaml`
 - Glob `~/.claude/projects/**/*.jsonl` → zdekoduj cwd → pokaż listę do override (jeśli user wybrał [2c] lub [2b])
 
-**0.3 — Klasyfikuj cwd (Claude Code sessions):**
+**0.3 — Wykryj środowisko i klasyfikuj cwd:**
+
+Najpierw sprawdź środowisko:
+```
+JSONL_COUNT=$(find ~/.claude/projects -name "*.jsonl" 2>/dev/null | wc -l)
+CURRENT_SESSION_CWD=$(pwd)
+```
+
+**Jeśli `JSONL_COUNT == 0` lub `JSONL_COUNT == 1` (tylko bieżąca sesja):**
+
+⚠️ **WYKRYTO ŚRODOWISKO ZDALNE (Claude Code on the web / cloud container)**
+
+Twoja pełna historia sesji Claude Code jest na **maszynie lokalnej** — ten kontener ma dostęp tylko do bieżącej sesji i nie może przeskanować Twojej lokalnej historii.
+
+Porównanie:
+- **WSD (Weekly Skill Discovery)** działał, bo był uruchamiany lokalnie w terminalu — miał dostęp do `~/.claude/projects/` na Twoim komputerze.
+- **BOOTSTRAP_CC** uruchomiony w `claude.ai/code` (web) działa w izolowanym kontenerze w chmurze — `~/.claude/projects/` zawiera wyłącznie bieżącą sesję.
+
+**Wybierz jak kontynuować:**
+```
+(a) Pomiń skan CC JSONL — kontynuuj z Gmail + Slack + Drive
+    [REKOMENDOWANE jeśli jesteś w cloud/web]
+
+(b) Zatrzymaj — uruchom ten prompt ponownie lokalnie w terminalu:
+    cd ~/knowledge-base && claude
+    Wklej ten sam prompt w sesji CLI (nie web).
+
+(c) Skanuj tylko bieżącą sesję jako próbkę (ograniczona wartość)
+```
+⛔ **Czekam na wybór (a/b/c) przed kontynuowaniem.**
+
+---
+
+**Jeśli `JSONL_COUNT > 1` (środowisko lokalne — pełna historia dostępna):**
+
 Glob `~/.claude/projects/**/*.jsonl` → zdekoduj cwd → pokaż listę:
 
 ```

@@ -50,7 +50,18 @@ Kontynuować? (a) Tak  (b) Zmień zakres  (c) Pomiń źródło
 {"type":"ai-title","aiTitle":"...","sessionId":"..."}
 ```
 
-**Etapy:**
+**Wykrycie środowiska (zawsze przed skanem):**
+```bash
+JSONL_COUNT=$(find ~/.claude/projects -name "*.jsonl" 2>/dev/null | wc -l)
+```
+- `JSONL_COUNT > 1` → środowisko **lokalne** → kontynuuj pełny skan
+- `JSONL_COUNT ≤ 1` → środowisko **zdalne (cloud/web container)** → wyświetl ostrzeżenie:
+
+> ⚠️ Wykryto środowisko zdalne. Pełna historia sesji CC jest na maszynie lokalnej.
+> Opcje: (a) Pomiń CC JSONL, kontynuuj Gmail/Slack/Drive  (b) Zatrzymaj i uruchom lokalnie w CLI  (c) Skanuj tylko bieżącą sesję (próbka)
+> ⛔ Czekaj na wybór przed kontynuowaniem.
+
+**Etapy (tylko jeśli lokalne lub opcja c):**
 1. Glob `**/*.jsonl` → lista plików
 2. Klasyfikuj `cwd` per `config/sources.yaml` → `skip_patterns` (AUTO-SKIP) lub INCLUDE
 3. Pokaż listę do override przed startem
