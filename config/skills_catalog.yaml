@@ -97,6 +97,29 @@ skip_meta:
   - WSD
   - "Weekly Skill Discovery"
   - "knowledge-base-scanner"
+  # Rozszerzone (po analizie bootstrapu Macieja, maj 2026):
+  - "auto-skill-generation"          # pytania "czy AI może samo robić skille" → meta
+  - "knowledge-base-infrastructure"  # budowa pipeline'u KB
+  - "n8n-meta-setup"                 # zakładanie n8n cloud / build n8n triggera dla KB
+  - "ai-onboarding-meta"             # praca nad samym onboardingiem AI OFF (nie wzorzec)
+  - "skill-builder-system"           # meta-system tworzenia skilli
+
+# Sygnały META do auto-skip w treści (regex/contains):
+skip_meta_patterns:
+  - "buduję skill który"
+  - "pipeline knowledge-base"
+  - "auto-generate skille"
+  - "auto-create wpisu w Notion Backlog"  # to ten system
+  - "instancja n8n cloud (mail powitalny"  # setup n8n meta
+  - "Bootstrap WSD właśnie startuje"
+
+# WSD-relay detection (wpisy które tylko cytują WSD raport):
+wsd_relay_signals:
+  channel: "C0AS00SNGQZ"            # #ai-feedback
+  keywords: ["WSD", "Weekly Skill Discovery", "weekly skill", "weekly discovery"]
+  time_window: "Mon 10:00-12:00 Europe/Warsaw"
+  action: "set Scan_type=WSD-relay (NOT Bootstrap/Weekly), drop Priority by 1 level"
+  rationale: "Slack #ai-feedback w poniedziałek to outpu WSD — nie nowe odkrycie KB"
 
 # Sugestia użycia (Pass 2 weryfikator):
 # 1. Pobierz proponowaną nazwę nowego skilla

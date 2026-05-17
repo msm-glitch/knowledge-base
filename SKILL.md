@@ -148,19 +148,70 @@ Dla każdego draftu sprawdź:
 
 ```
 [ ] 1. Czy wpis przeszedł SKIP RULES? (meta, "stan istniejącego skilla", jednorazowe)
+       → sprawdź też skip_meta_patterns w skills_catalog.yaml (regex/contains)
 [ ] 2. Czy proponowana nazwa skilla/SOPa istnieje już w config/skills_catalog.yaml?
        → fuzzy match na: base_off + extended_uao + extended_extra
        → JEŚLI MATCH: wymuś [FIX] zamiast [NEW]
        → JEŚLI w skip_meta: POMIŃ wpis całkowicie
 [ ] 3. Czy Source URL jest wypełniony (lub jawnie "—")?
+       → Slack: MUSI być permalink (slack_get_permalink), NIE app_redirect
 [ ] 4. Czy User to oryginalny autor wzorca (nie skanujący)?
 [ ] 5. Czy Date to data zdarzenia (nie dziś)?
 [ ] 6. Czy Title ma prefix [NEW]/[FIX]/[BUG]?
 [ ] 7. Czy Summary daje konkret z liczbą wystąpień + dowodem + co naprawić?
+[ ] 8. Czy Summary kończy się zdaniem "Next: ___"? (1 actionable krok)
+[ ] 9. WSD-relay check: source=Slack #ai-feedback (C0AS00SNGQZ) i tekst ma "WSD"?
+       → ustaw Scan_type=WSD-relay, obniż Priority o 1 poziom
+[ ] 10. Trigger phrases (tylko dla Skill Backlog [FIX]/[NEW]):
+       → wyciągnij konkretne frazy z source które miss/trigger
+       → dopisz na końcu Summary: "Triggers obs.: 'fraza1', 'fraza2'..."
 ```
 
 Jeśli ≥1 check fail → popraw draft LUB odrzuć do `rejected_drafts.log`.
-Dopiero po wszystkich ✅ → zapis do Notion.
+Dopiero po wszystkich ✅ → przejdź do Pass 3.
+
+### Pass 3 — ANTI-DUPLICATE QUERY (przed zapisem do Notion)
+
+Dla każdego draftu, **przed `notion-create-pages`**, query Notion KB DB:
+
+```
+query: filter by (Type == draft.Type) AND (Status != "Rejected")
+       AND (Date in [draft.Date - 14d, draft.Date + 14d])
+```
+
+Dla każdego wyniku oblicz **similarity score** względem draftu:
+- Title token overlap (Jaccard) — waga 0.4
+- Skill name match (extract z Title po prefix [NEW]/[FIX]/[BUG]) — waga 0.4
+- User match — waga 0.2
+
+```
+similarity = 0.4 * jaccard(titles) + 0.4 * skill_name_match + 0.2 * user_match
+```
+
+| similarity | Akcja |
+|---|---|
+| ≥ 0.75 | **MERGE** — NIE twórz nowego. Update istniejącego: `occurrences += 1`, append do Summary "Także: {Source URL nowego}", refresh Date jeśli nowsze |
+| 0.55-0.74 | **FLAG** — pokaż userowi diff "Czy to duplikat #X?" i czekaj na decyzję |
+| < 0.55 | **CREATE** — nowy wpis OK |
+
+Przykład merge (z bootstrapu Macieja):
+- Draft: `[FIX] 2026-05-17 · Maciej · off-brand-voice — dodaj 'podopieczni'`
+- Istnieje: `[FIX] 2026-05-11 · Maciej · volunteer-message — dodaj podopieczni...`
+- similarity = 0.4·0.6 (titles) + 0.4·0.8 (oba dotyczą "podopieczni" w skillu od brand voice) + 0.2·1.0 (Maciej) = **0.76** → MERGE
+
+### Pass 4 — PRIORITY NORMALIZATION (anty-inflacja)
+
+Po wszystkich Pass 3 zapisach, oblicz rozkład priorytetów dla tego skanu:
+
+```
+target_distribution: High=20%, Medium=50%, Low=30%
+```
+
+Jeśli faktyczny High% > 35%:
+1. Posortuj High'e malejąco po `score = (occurrences × sources × time_saved_min)`
+2. Top 20% zostają High, reszta → Medium (update via `notion-update-page`)
+
+Rationale: jeśli wszystko jest "High", priorytet traci znaczenie. Zespół musi wiedzieć co BIERZE NAJPIERW.
 
 ### Few-shot examples — UCZ SIĘ Z PRAWDZIWYCH PRZYPADKÓW
 
@@ -326,19 +377,47 @@ Jeśli odkrycie pasuje do 2 typów (np. SOP + n8n):
 ### Pola wpisu:
 
 ```
-Title:    "{YYYY-MM-DD} · {Imię} · {Krótki opis odkrycia}"
+Title:    "{YYYY-MM-DD} · {Imię} · [PREFIX] {Krótki opis odkrycia}"
 Type:     SOP | Skill Backlog | n8n Automation
 Source:   [Claude Code | Claude Chat | Claude Cowork | Gmail | Slack | Google Drive]
-Date:     data odkrycia (YYYY-MM-DD)
+Date:     data ostatniego wystąpienia (YYYY-MM-DD)
 Week:     ISO week (np. "2026-W21")
-Summary:  2-3 zdania: co to jest + dlaczego warto wdrożyć
-Priority: High | Medium | Low
-Status:   New
+Summary:  Format STRICT:
+  Zdanie 1: Co — wzorzec + liczba × + zakres dat
+  Zdanie 2: Dowód — gdzie/kto (Source URLs)
+  Zdanie 3: Triggers obs.: 'fraza1', 'fraza2' (TYLKO dla Skill Backlog)
+  Zdanie 4: Next: {1 actionable krok dla ownera}
+Priority: High | Medium | Low (po Pass 4 normalizacji)
+Status:   New | Triaged | In Progress | Implemented | Validated | Rejected
 User:     Notion Person ID (z config/notion.yaml)
 User name (fallback): imię tekstowo jeśli brak Notion ID
-Source URL: link do oryginału (jeśli dostępny)
-Scan type: Bootstrap | Weekly
+Source URL: PERMALINK do oryginału (Slack: slack_get_permalink, nie app_redirect)
+Scan type: Bootstrap | Weekly | WSD-relay
+Occurrences: liczba wystąpień wzorca (int, default 1)
+Sources count: liczba unikalnych źródeł (int, default 1)
+Time saved (min/week): szacunek oszczędności po wdrożeniu (int)
+Implementation size: S (<2h) | M (2-8h) | L (>8h)
+Related skill: nazwa skilla z skills_catalog (dla [FIX]/[BUG]) lub "—"
+Owner suggestion: kto powinien obsłużyć (autor / skill-creator / n8n-admin / Wojciech)
+ROI score: occurrences × sources × time_saved_min / impl_size_factor  (auto)
 ```
+
+**Implementation size factor:** S=1, M=4, L=12 (do obliczenia ROI).
+**ROI score** jest kluczem do sortowania backlogu — pokazuje co dawać do realizacji NAJPIERW.
+
+**Jak szacować time_saved:**
+- Z wpisów: jeśli source mówi "2h/kampanię, 4× w miesiącu" → 2h×4/4 tyg = 120 min/tydzień
+- Jeśli brak danych: konserwatywnie 15 min/tydzień (Low), 60 (Medium), 180 (High)
+
+**Jak ustawić Owner suggestion:**
+| Typ wpisu | Owner |
+|---|---|
+| [FIX] istniejącego skilla | skill-creator (Wojciech) |
+| [BUG] blokujący | autor wzorca + Wojciech |
+| [NEW] Skill Backlog | skill-creator (Wojciech) |
+| [NEW] n8n Automation | n8n-admin (Maciek) |
+| [NEW] SOP | autor wzorca |
+| Team-wide (≥3 osoby) | Wojciech + Maciek |
 
 ### Wywołanie MCP:
 
