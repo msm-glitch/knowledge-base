@@ -65,6 +65,18 @@ Identyczne jak w bootstrapie (PHASE 2-4), ale `since=-7d`.
 
 Tylko NOWE wzorce nieobecne jeszcze w Notion Knowledge Base DB.
 
+## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+
+❌ **NIE ZAPISUJ jeśli:** meta-wpisy (knowledge-base, WSD), "stan istniejącego skilla" bez konkretu, jednorazowe momenty.
+
+✅ **Title prefix:** `[NEW]` nowy / `[FIX]` poprawka / `[BUG]` bug
+✅ **Source URL WYMAGANE** (Slack permalink / Gmail link / Drive viewUrl / JSONL path)
+✅ **User = autor wzorca, NIE skanujący** (mapuj email na Notion Person ID z config/notion.yaml)
+✅ **Date = data oryginalnego zdarzenia (timestamp JSONL), NIE dziś**
+✅ **1 wpis = 1 dominujący Type** (drugi aspekt w Summary)
+
+---
+
 ## PHASE 6: ZAPIS DO NOTION
 
 Identyczny jak bootstrap, ale:

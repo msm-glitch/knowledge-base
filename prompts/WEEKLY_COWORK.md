@@ -72,6 +72,18 @@ Tylko NOWE wzorce (nie ma ich jeszcze w Notion Knowledge Base):
 | Trigger + sekwencja między narzędziami | n8n Automation |
 | Jednorazowe | POMIŃ |
 
+## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+
+❌ **NIE ZAPISUJ jeśli:** meta-wpisy (knowledge-base, WSD), "stan istniejącego skilla" bez konkretu, jednorazowe momenty.
+
+✅ **Title prefix:** `[NEW]` nowy / `[FIX]` poprawka / `[BUG]` bug
+✅ **Source URL WYMAGANE** (link do oryginału lub `—`)
+✅ **User = autor wzorca, NIE skanujący** (mapuj email na Notion Person ID z config/notion.yaml)
+✅ **Date = data oryginalnego zdarzenia, NIE dziś**
+✅ **1 wpis = 1 dominujący Type** (drugi aspekt w Summary)
+
+---
+
 ## PHASE 6: ZAPIS DO NOTION
 
 - Notion: `collection://b01c168b-17f2-4267-91c6-9286a34e43c0`

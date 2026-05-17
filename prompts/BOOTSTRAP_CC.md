@@ -155,6 +155,29 @@ Priority:
 - Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
 - Low: 1 wystąpienie, warto zapamiętać
 
+## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+
+❌ **NIE ZAPISUJ jeśli:**
+- Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta — to ten sam skill)
+- "Stan istniejącego skilla" bez konkretnego problemu
+- Jednorazowy moment bez powtarzalności
+
+✅ **Title prefix obowiązkowy:**
+- `[NEW]` nowy / `[FIX]` poprawka istniejącego / `[BUG]` blokujący błąd
+
+✅ **Source URL WYMAGANE:**
+- Slack: permalink / Gmail: link wątku / Drive: viewUrl
+- Claude Code: `~/.claude/projects/[cwd]/[session].jsonl` + timestamp
+- Brak → wpisz `—`
+
+✅ **User = autor wzorca, NIE skanujący.** Mapuj email na Notion Person ID z config/notion.yaml → users. ≥3 osoby → "(team-wide)" w Title.
+
+✅ **Date = data ORYGINALNEGO zdarzenia** (timestamp z JSONL / data Slack msg / etc.), nie dziś.
+
+✅ **1 wpis = 1 dominujący Type.** Drugi aspekt w Summary.
+
+---
+
 ## PHASE 6: ZAPIS DO NOTION
 
 Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis w Notion Knowledge Base DB:

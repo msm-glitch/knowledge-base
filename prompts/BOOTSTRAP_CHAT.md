@@ -118,6 +118,39 @@ Priority:
 - Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
 - Low: 1 wystąpienie, warto zapamiętać
 
+## PHASE 5.5: QUALITY GATES (sprawdź PRZED zapisem)
+
+❌ **NIE ZAPISUJ jeśli:**
+- Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta — to ten sam skill)
+- "Stan istniejącego skilla" bez konkretnego problemu/poprawki
+- Jednorazowy moment bez powtarzalności
+
+✅ **Title prefix obowiązkowy:**
+- `[NEW]` — nowy SOP / nowy skill / nowa automatyzacja
+- `[FIX]` — poprawka istniejącego skilla (trigger conflict, missing keywords)
+- `[BUG]` — bug w istniejącym narzędziu
+
+Przykład: `[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów`
+
+✅ **Source URL — WYMAGANE** (jeśli faktycznie brak → wpisz `—`, nie zostawiaj pustego):
+- Slack: permalink wiadomości
+- Gmail: link do wątku
+- Drive: viewUrl
+- Chat: URL konwersacji jeśli dostępny
+
+✅ **User attribution** — kto JEST autorem wzorca, nie skanujący:
+- Wzorzec własny → User = ja
+- Slack post Michała o problemie → User = Michał (mapuj email na Notion Person ID z config/notion.yaml)
+- ≥3 osoby → "(team-wide)" w Title
+
+✅ **Date — data ORYGINALNEGO zdarzenia** (NIE dziś):
+- Slack: data wiadomości / Gmail: data wątku / Chat: data rozmowy
+- Wzorzec wielokrotny → najnowsze wystąpienie
+
+✅ **Multi-type** — 1 wpis = 1 dominujący Type. Drugi aspekt opisz w Summary.
+
+---
+
 ## PHASE 6: ZAPIS DO NOTION
 
 Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis:

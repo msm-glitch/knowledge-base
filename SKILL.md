@@ -148,6 +148,76 @@ Dla każdego wzorca/odkrycia odpowiedz na pytanie:
 
 ---
 
+## Krok 3.5: Quality gates (KRYTYCZNE — sprawdź PRZED zapisem)
+
+### ❌ NIE ZAPISUJ (skip rules):
+
+1. **Meta-wpisy** — wpis dotyczy samego procesu skanowania/budowy KB:
+   - `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD`, `Weekly Skill Discovery`
+   - Wpisy "buduję skill który będzie skanował sesje" → pomiń
+
+2. **"Stan istniejącego skilla"** bez konkretnego problemu:
+   - "Skill X działa, użytkownicy go testują" → POMIŃ
+   - "Skill X wymaga poprawki Y bo trigger nie działa" → ZAPISZ jako [FIX]
+
+3. **Jednorazowe pytania** — mniej niż 2× w jakimkolwiek źródle i brak wartości uogólnienia
+
+### ✅ Title prefix — rozróżnij typ działania:
+
+| Prefix | Kiedy | Przykład |
+|---|---|---|
+| `[NEW]` | Nowy SOP / nowy skill / nowa automatyzacja | `[NEW] Onboarding AI OFF — SOP` |
+| `[FIX]` | Poprawka istniejącego skilla (trigger conflict, missing keywords) | `[FIX] off-brand-voice — dodaj 'podopieczni' do triggerów` |
+| `[BUG]` | Bug w istniejącym narzędziu który blokuje pracę | `[BUG] CRM-Rejs sync — wpisuje do złej bazy` |
+
+### ✅ Source URL (WYMAGANE):
+
+Każdy wpis MUSI mieć link do oryginalnego źródła. Bez tego nie da się zweryfikować.
+
+| Źródło | Co wpisać |
+|---|---|
+| Slack | Permalink wiadomości (`slack_get_permalink` lub URL `https://*.slack.com/archives/...`) |
+| Gmail | Link do wątku (`https://mail.google.com/mail/u/0/#inbox/...`) |
+| Drive | `viewUrl` pliku |
+| Claude Chat | URL konwersacji jeśli dostępny |
+| Claude Code | Ścieżka JSONL + session ID (`~/.claude/projects/[cwd]/[session].jsonl`) |
+| Brak | Wpisz jawnie `—` (NIE zostawiaj pustego pola) |
+
+Wpis wielokrotny → URL najsilniejszego/najnowszego wystąpienia (resztę wymień w Summary).
+
+### ✅ User attribution (atrybucja):
+
+User w Notion = **osoba u której wzorzec się pojawia**, NIE skanujący.
+
+| Sytuacja | Co zrobić |
+|---|---|
+| Wzorzec własny (skanujący wysłał maila, miał sesję) | User = skanujący |
+| Widziany w Slack post Michała o problemie | User = Michał |
+| Wzorzec u ≥3 różnych osób | Multi-select User + `(team-wide)` w Title |
+| Z WSD bez konkretnej osoby | User name (fallback) = "WSD report" |
+
+**Mapowanie email → Notion Person ID:**
+- Załaduj `config/notion.yaml` → `users`
+- Email `wfs@off.org.pl` → Notion ID `206d872b-594c-81d6-8a6f-0002a2592991`
+- Jeśli brak mapowania → tylko `User name (fallback) = "Imię"`
+
+### ✅ Date — ORYGINALNE zdarzenie:
+
+NIE wpisuj dziś. Wpisz datę ostatniego wystąpienia wzorca:
+- Slack: data wiadomości
+- Gmail: data wątku
+- Drive: `lastModified`
+- Claude session: `timestamp` ostatniej tury
+- Wzorzec wielokrotny → data NAJNOWSZEGO wystąpienia
+
+### ✅ Multi-type (1 wpis = 1 Type):
+
+Jeśli odkrycie pasuje do 2 typów (np. SOP + n8n):
+- Wybierz **dominujący** Type (główne działanie wymagane)
+- W Summary wymień drugi aspekt: "Type: n8n Automation, ale wymaga też SOP-a opisującego kiedy uruchamiać"
+
+---
+
 ## Krok 4: Zapis do Notion Knowledge Base
 
 ### Pola wpisu:
@@ -178,14 +248,40 @@ Sprawdź `config/notion.yaml` → `databases.knowledge_base` — jeśli puste, u
 
 ---
 
-## Krok 5: Cross-source boost
+## Krok 5: Cross-source boost + Intra-source intensity
 
-Po zebraniu wszystkich odkryć — deduplikacja i ranking:
+Po zebraniu wszystkich odkryć — deduplikacja i ranking. **Dwa równoległe sygnały** podnoszą priorytet:
+
+### A) Cross-source (różne źródła)
+
+Ten sam wzorzec w ≥2 niezależnych źródłach → realny problem zespołowy (nie anegdota).
 
 ```
-Wzorzec wykryty w ≥2 źródłach → priorytet wyższy o 1 poziom
-Wzorzec wykryty przez ≥2 różnych userów → dodaj tag "team-wide"
+Wzorzec w ≥2 źródłach        → Priority +1 poziom
+Wzorzec w ≥3 źródłach        → Priority = High (override)
+Wzorzec u ≥2 różnych userów  → dodaj "(team-wide)" w Title
 ```
+
+### B) Intra-source intensity (powtarzalność w jednym źródle)
+
+Pojedyncze źródło, ale silnie powtarzalne → też silny sygnał (#8 Macieka: 5× w Chat).
+
+```
+≥5 wystąpień w jednym źródle  → Priority = High (nawet bez cross-source)
+≥3 wystąpienia w jednym źródle → Priority = Medium minimum
+```
+
+### Łącznie — final Priority:
+
+```
+final_priority = max(
+  base_priority_from_kriteria,
+  cross_source_boost,
+  intra_source_intensity
+)
+```
+
+Jeśli kolizja (np. cross-source mówi Medium, intra-source mówi High) → bierz wyższy.
 
 Consolidated output (dla bootstrapu):
 ```
