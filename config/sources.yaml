@@ -1,0 +1,89 @@
+# Źródła danych — knowledge-base scan
+
+sources:
+  claude_code:
+    enabled: true
+    paths:
+      windows: "C:\\Users\\<user>\\.claude\\projects\\"
+      macos_linux: "~/.claude/projects/"
+    format: jsonl
+    skip_patterns:
+      - akta-spraw
+      - akta-kcs
+      - kas-roi
+      - kas-osint
+      - udip
+      - nik-advocacy
+      - krs-
+      - wolosiewicz
+      - mini-granty
+
+  claude_chat:
+    enabled: true
+    requires: "Search and reference chats (Settings → Privacy)"
+    surface: "Claude.ai Chat"
+
+  claude_cowork:
+    enabled: true
+    api: "list_sessions"
+    surface: "Claude.ai Project"
+
+  gmail:
+    enabled: true
+    mcp: "mcp__ab46da28"
+    scan_labels:
+      - INBOX
+      - SENT
+    keywords:
+      - decision
+      - decyzja
+      - potwierdź
+      - pipeline
+      - SOP
+      - powtarzalny
+      - automatyzacja
+    skip_labels:
+      - SPAM
+      - TRASH
+
+  slack:
+    enabled: true
+    mcp: "mcp__8c5de80e"
+    channels:
+      - general
+      - ai-feedback
+      - planer-dnia
+      - brand-team
+      - mini-granty
+      - full-team
+    skip_keywords:
+      - PESEL
+      - NIP
+      - hasło
+      - password
+
+  google_drive:
+    enabled: true
+    mcp: "mcp__7a8eafc1"
+    folders:
+      - "1U10_VXe_qxoYOlrSyIpgQKXOUy-og1D-"  # Weekly Skill Discovery
+    mime_types:
+      - text/plain
+      - text/markdown
+      - application/vnd.google-apps.document
+    skip_patterns:
+      - akta
+      - NDA
+      - confidential
+
+# Harmonogram weekly
+schedule:
+  day: monday
+  time: "10:00"
+  timezone: "Europe/Warsaw"
+
+# Progi klasyfikacji (ile wystąpień wzorca = SOP/Skill/n8n kandydat)
+classification_thresholds:
+  sop_min_occurrences: 2        # proces pojawił się ≥2x w różnych sesjach/mailach
+  skill_min_occurrences: 1      # jednorazowe zadanie dla Claude wystarczy
+  n8n_requires_trigger: true    # musi mieć jasny trigger + akcję

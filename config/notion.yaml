@@ -1,0 +1,40 @@
+# Notion — Claude Knowledge Base config
+# Repo: msm-glitch/knowledge-base
+
+parent_page: "356fab98-766f-81eb-8194-f33ebeed7f51"  # 🧠 Claude Knowledge Base
+
+databases:
+  sessions: "62f940a08fb342d79fcfb809e7c7c96c"
+  sops: "deaf78c2362146cea5987eceb3220227"
+  skills_backlog: "da811c4f224b4697919d9ed82d33bf76"
+  patterns: "bec42f9aeabf43bab20f62d1e8a34f42"
+  knowledge_base: "3709c230152c40a2a46adbaf2b9f40b1"
+
+collections:
+  sessions: "29da70bd-0746-44e2-a54b-985985aa5022"
+  sops: "935d325d-9e04-4833-a8eb-952d786c022e"
+  skills_backlog: "bb7f0d54-b122-4fcd-878e-ae4353d771c3"
+  patterns: "3f34774e-5e02-4566-ab88-5a0b98078ef5"
+  knowledge_base: "b01c168b-17f2-4267-91c6-9286a34e43c0"
+
+# Notion Person IDs — team OFF
+# Pobierz własne ID: w Notion → Settings → My account → "User ID"
+users:
+  wojciech: "206d872b-594c-81d6-8a6f-0002a2592991"
+  michal: ""       # do uzupełnienia
+  kamil: ""        # do uzupełnienia
+  zuzanna: ""      # do uzupełnienia
+  krzysztof: "FALLBACK"  # brak konta Notion
+  natalia: ""      # do uzupełnienia
+  weronika: ""     # do uzupełnienia
+  roksana: "FALLBACK"    # brak konta Notion
+  bartosz: ""      # do uzupełnienia
+  maciek: ""       # do uzupełnienia
+  natasza: ""      # do uzupełnienia
+
+slack:
+  channel_ai_feedback: "C0AS00SNGQZ"   # #ai-feedback
+
+tracker:
+  spreadsheet_id: "1MWPTuBgE0VFdQ6VUaS2TCnxKuwg-NyqIJ-ig-9jJMQE"
+  tab_id: "65402809"   # WSD_status

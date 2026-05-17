@@ -1,0 +1,82 @@
+# Knowledge Base — Weekly Scan Claude Code
+
+**Wersja:** 1.0 | **Data:** 2026-05-17 | **Tryb:** WEEKLY (co poniedziałek 10:00)
+
+**Przeznaczenie:** Wklej w sesji `claude` (CLI) co tydzień. Skanuje ostatnie 7 dni: Claude Code JSONL + Gmail + Slack + Drive.
+
+**Wymagania:** Bootstrap wykonany wcześniej (`BOOTSTRAP_CC.md`).
+
+---
+
+## PROMPT WEEKLY — skopiuj i wklej w `claude`:
+
+```
+# WEEKLY KNOWLEDGE BASE SCAN v1.0 — Claude Code
+
+Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
+
+Uruchom skill `knowledge-base` z repozytorium `msm-glitch/knowledge-base` w trybie `weekly`.
+
+## PHASE 0: PRE-FLIGHT
+
+**0.1 — Wykryj usera i załaduj config** (jak w bootstrap, krok 0.1-0.2)
+
+**0.2 — Zakres:**
+- Sesje JSONL: timestamp z ostatnich 7 dni
+- Gmail/Slack/Drive: ostatnie 7 dni
+- Nie pytaj o token strategy — używaj Light (cotygodniowe scany są szybkie)
+
+## PHASE 1: SCAN — Claude Code (ostatnie 7 dni)
+
+Glob `~/.claude/projects/**/*.jsonl` → filtruj po `timestamp >= [TYDZIEŃ_TEMU]`.
+
+Dla każdej sesji:
+- Wyciągnij: tytuł, datę, narzędzia, powtarzające się komendy
+- Szukaj wzorców których nie było w poprzednich raportach
+- Sprawdź memory: `knowledge-base: last_run` → nie duplikuj odkryć z poprzedniego tygodnia
+
+## PHASE 2-4: Gmail + Slack + Drive (ostatnie 7 dni)
+
+Identyczne jak w bootstrapie (PHASE 2-4), ale `since=-7d`.
+
+## PHASE 5: KLASYFIKACJA (jak bootstrap)
+
+Tylko NOWE wzorce nieobecne jeszcze w Notion Knowledge Base DB.
+
+## PHASE 6: ZAPIS DO NOTION
+
+Identyczny jak bootstrap, ale:
+- Scan type: **Weekly** (nie Bootstrap)
+- Week: `{ISO_YEAR}-W{AKTUALNY_TYDZIEŃ}`
+
+## PHASE 7: OUTPUT
+
+```
+🔄 Knowledge Base Weekly — [Imię] — [Data] (W{X})
+
+Przeskanowano (ostatnie 7 dni):
+  • Claude Code:  X sesji / Y nowych odkryć
+  • Gmail:        X wątków / Y nowych odkryć
+  • Slack:        X wiadomości / Y nowych odkryć
+  • Drive:        X plików / Y nowych odkryć
+
+🎯 Nowe wpisy: Z → Notion
+  • SOP: N  • Skill: N  • n8n: N  • Pominięto: N
+
+📁 Notion: https://www.notion.so/3709c230152c40a2a46adbaf2b9f40b1
+```
+
+Jeśli 0 nowych odkryć: "Brak nowych odkryć w tym tygodniu. Następny scan: [DATA+7]"
+
+Jeśli ≥1 odkrycie High priority → wyślij Slack post do #ai-feedback.
+
+## PHASE 8: MEMORY UPDATE
+
+```
+knowledge-base: last_run={DATE}, mode=weekly, discoveries={N}, week={ISO_WEEK}
+```
+```
+
+---
+
+*Prompt: WEEKLY_CC.md v1.0 · knowledge-base · msm-glitch/knowledge-base*
