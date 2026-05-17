@@ -17,14 +17,36 @@ Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
 Uruchom skill `knowledge-base` z repozytorium `msm-glitch/knowledge-base` w trybie `weekly`.
 
-## PHASE 0: PRE-FLIGHT
+## PHASE 0: PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-**0.1 — Wykryj usera i załaduj config** (jak w bootstrap, krok 0.1-0.2)
+Przed skanem zadaję Ci 2 pytania. **Nie przechodzę dalej dopóki nie odpiszesz — nie zakładam żadnych wartości domyślnych.**
 
-**0.2 — Zakres:**
-- Sesje JSONL: timestamp z ostatnich 7 dni
+Sprawdź `git config user.email` i `~/.claude/projects/*/memory/user_profile.md`, następnie wyświetl:
+
+---
+
+**[1/2] Twoje dane**
+Wykryto: `[email z git config lub "nieznany"]`, imię: `[z memory lub "nieznane"]`
+→ Potwierdź lub popraw: "Tak, to ja" / "Poprawiam: [imię, email]"
+
+*Jeśli dane nieznane — wymagam jawnego wpisu przed kontynuowaniem.*
+
+---
+
+**[2/2] Potwierdzenie zakresu**
+Skanem objęte: ostatnie 7 dni (Claude Code JSONL + Gmail + Slack + Drive).
+Token strategy: Light (szybki weekly scan).
+Czy jest coś co chcesz wyłączyć lub zawęzić?
+→ Odpowiedz: OK lub podaj wyjątki
+
+---
+
+⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
+
+Po odpowiedziach:
+- Załaduj `config/notion.yaml` i `config/sources.yaml`
+- Sesje JSONL: filtruj po `timestamp >= [TYDZIEŃ_TEMU]`
 - Gmail/Slack/Drive: ostatnie 7 dni
-- Nie pytaj o token strategy — używaj Light (cotygodniowe scany są szybkie)
 
 ## PHASE 1: SCAN — Claude Code (ostatnie 7 dni)
 

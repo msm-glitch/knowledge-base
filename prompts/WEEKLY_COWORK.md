@@ -18,11 +18,32 @@ Harmonogram: co poniedziałek o 10:00 (Europe/Warsaw).
 
 Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
-## PHASE 0: PRE-FLIGHT
+## PHASE 0: PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-Załaduj konfigurację:
+Przed skanem zadaję Ci 2 pytania. **Nie przechodzę dalej dopóki nie odpiszesz — nie zakładam żadnych wartości domyślnych.**
+
+---
+
+**[1/2] Twoje dane**
+Podaj imię i email @off.org.pl.
+→ Odpowiedz np.: "Maciek, maciek@off.org.pl"
+
+*Nie zgaduję ani nie zakładam danych — wymagam jawnego wpisu.*
+
+---
+
+**[2/2] Potwierdzenie zakresu**
+Skanem objęte: ostatnie 7 dni (Cowork + Gmail + Slack + Drive).
+Czy jest coś co chcesz wyłączyć lub zawęzić?
+→ Odpowiedz: OK lub podaj wyjątki
+
+---
+
+⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
+
+Po odpowiedziach załaduj konfigurację:
 - Notion DB: `collection://b01c168b-17f2-4267-91c6-9286a34e43c0`
-- User: [TWOJE IMIĘ], Notion ID z config/notion.yaml
+- User: mapuj email na Notion Person ID z `config/notion.yaml` → `users`
 - Zakres: ostatnie 7 dni
 
 ## PHASE 1: SCAN — Cowork sessions (ostatnie 7 dni)

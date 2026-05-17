@@ -15,14 +15,40 @@
 
 Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
-Moje imię: [PODAJ SWOJE]
-Email: [Twój @off.org.pl]
 Tryb: weekly
 
-## PRE-FLIGHT
+## PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-1. Czy "Search and reference chats" jest włączone? Jeśli nie → przerwij.
-2. Zakres: ostatnie 7 dni (od [DATA_TYDZIEŃ_TEMU] do dziś)
+Przed skanem zadaję Ci 3 pytania. **Nie przechodzę dalej dopóki nie odpiszesz na wszystkie — nie zakładam żadnych wartości domyślnych.**
+
+---
+
+**[1/3] Search & reference chats**
+Czy masz włączone "Search and reference chats" w Settings → Privacy?
+→ Odpowiedz: TAK / NIE
+
+*Jeśli NIE: przerwij i napisz instrukcję jak włączyć.*
+
+---
+
+**[2/3] Twoje dane**
+Podaj imię i email @off.org.pl.
+→ Odpowiedz np.: "Maciek, maciek@off.org.pl"
+
+*Nie zgaduję ani nie zakładam danych — wymagam jawnego wpisu.*
+
+---
+
+**[3/3] Potwierdzenie zakresu**
+Skanem objęte: ostatnie 7 dni (Chat + Gmail + Slack + Drive).
+Czy jest coś co chcesz wyłączyć lub zawęzić?
+→ Odpowiedz: OK lub podaj wyjątki
+
+---
+
+⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
+
+Zakres: ostatnie 7 dni (od [DATA_TYDZIEŃ_TEMU] do dziś)
 
 ## PHASE 1: SCAN — Chat (ostatnie 7 dni)
 

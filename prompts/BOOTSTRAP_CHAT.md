@@ -20,15 +20,50 @@
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan mojej historii rozmów z Claude.
 
-## PRE-FLIGHT
+## PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-Zanim zaczniesz, potwierdź:
-1. Czy mam włączone "Search and reference chats"? Jeśli nie — przerwij i poproś o włączenie.
-2. Moje imię i email @off.org.pl: [PODAJ SWOJE DANE]
-3. Zakres: (a) Wszystkie rozmowy  (b) Tylko OFF-related  (c) Wybiórczo z datami
-4. Compliance: potwierdzam auto-skip dla: Mini Granty PII, rozmowy legal/NDA
+Przed skanem zadaję Ci 4 pytania. **Nie przechodzę dalej dopóki nie odpiszesz na wszystkie — nie zakładam żadnych wartości domyślnych.**
 
-Jeśli (1)+(2)+(3)+(4) OK → kontynuuj. Inaczej → przerwij + wyjaśnij.
+Wyświetl poniższy formularz i czekaj:
+
+---
+
+**[1/4] Search & reference chats**
+Czy masz włączone "Search and reference chats" w Settings → Privacy?
+→ Odpowiedz: TAK / NIE
+
+*Jeśli NIE: przerwij i napisz "Włącz 'Search and reference chats' w claude.ai → Settings → Privacy, potem wróć z tym promptem."*
+
+---
+
+**[2/4] Twoje dane**
+Podaj imię i email @off.org.pl.
+→ Odpowiedz np.: "Maciek, maciek@off.org.pl"
+
+*Nie zgaduję ani nie zakładam danych — wymagam jawnego wpisu.*
+
+---
+
+**[3/4] Zakres skanu**
+Które rozmowy skanować?
+→ Wybierz i odpisz literę:
+(a) Wszystkie rozmowy (lifetime — od pierwszej do dziś)
+(b) Tylko OFF-related (pomijam rozmowy prywatne/osobiste)
+(c) Wybiórczo — dopisz zakres dat lub tematy np. "od 2026-01-01" / "tylko marketing"
+
+---
+
+**[4/4] Compliance — wymagane potwierdzenie**
+Przeczytaj i potwierdź że rozumiesz:
+✓ Raport nie cytuje danych osobowych (PESEL, NIP, imiona beneficjentów Mini Granty)
+✓ Rozmowy legal/NDA → auto-skip (nie analizuję treści)
+✓ Rozmowy z klauzulą anty-AI → STOP i informuję Cię
+✓ Wątpliwe fragmenty → oznaczam "Needs review", nie zapisuję do Notion
+→ Odpowiedz: POTWIERDZAM lub wskaż co chcesz zmienić
+
+---
+
+⛔ **Czekam na Twoje odpowiedzi [1], [2], [3], [4] — dopiero potem zaczynam skan.**
 
 ## PHASE 1: SCAN — Claude Chat history
 

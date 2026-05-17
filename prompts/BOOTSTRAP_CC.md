@@ -21,15 +21,56 @@ Uruchom skill `knowledge-base` z repozytorium `msm-glitch/knowledge-base` w tryb
 
 ## PHASE 0: PRE-FLIGHT
 
-**0.1 — Wykryj usera:**
-- Sprawdź `git config user.email`
-- Załaduj `~/.claude/projects/*/memory/user_profile.md` (jeśli istnieje)
-- Zmapuj na Notion Person ID z `config/notion.yaml` → `users`
-- Powiedz mi: "Wykryto użytkownika: [imię], email: [email], Notion ID: [ID lub FALLBACK]"
+**0.1 — Wykryj usera i pokaż formularz PRE-FLIGHT:**
 
-**0.2 — Załaduj config:**
-- Odczytaj `config/notion.yaml` i `config/sources.yaml` z repo knowledge-base
-- Potwierdź: "Notion Knowledge Base DB: [ID], Slack: [channel], źródła: [lista]"
+Sprawdź `git config user.email` i `~/.claude/projects/*/memory/user_profile.md`.
+Następnie wyświetl poniższy formularz i **czekaj na odpowiedzi — nie zakładaj wartości domyślnych:**
+
+---
+
+**[1/4] Twoje dane**
+Wykryto: `[email z git config lub "nieznany"]`, imię: `[z memory lub "nieznane"]`
+→ Potwierdź lub popraw: "Tak, to ja" / "Poprawiam: [imię, email]"
+
+*Jeśli dane nieznane lub niepewne — wymagam jawnego wpisu przed kontynuowaniem.*
+
+---
+
+**[2/4] Zakres skanu sesji**
+Które projekty (cwd) skanować?
+→ Wybierz i odpisz literę:
+(a) Wszystkie (auto-skip dla legal/private wg config/sources.yaml)
+(b) Tylko OFF-related — pomijam projekty prywatne
+(c) Wybiórczo — poczekaj na listę CWD i wskaż numery
+
+*Listę CWD z klasyfikacją pokażę po Twojej odpowiedzi.*
+
+---
+
+**[3/4] Token strategy**
+Jak głęboko skanować?
+(A) Light — tylko metadane + grep (~150K, ~5 min)
+(B) Medium — + sampling 30 linii/sesja (~600K, ~15 min) ← rekomendowane
+(C) Deep — full content (~2M+, ~60 min)
+→ Odpisz literę: A / B / C
+
+---
+
+**[4/4] Compliance — wymagane potwierdzenie**
+Przeczytaj i potwierdź że rozumiesz:
+✓ Raport nie cytuje danych osobowych (PESEL, NIP, imiona beneficjentów)
+✓ Projekty legal/NDA → auto-skip (akta-kcs, UDIP, KRS i podobne)
+✓ Projekty z klauzulą anty-AI → STOP i informuję Cię
+✓ Wątpliwe fragmenty → oznaczam "Needs review", nie zapisuję do Notion
+→ Odpowiedz: POTWIERDZAM lub wskaż co chcesz zmienić
+
+---
+
+⛔ **Czekam na Twoje odpowiedzi [1], [2], [3], [4] — dopiero potem zaczynam skan.**
+
+**0.2 — Po odpowiedziach — załaduj config i pokaż listę CWD:**
+- Odczytaj `config/notion.yaml` i `config/sources.yaml`
+- Glob `~/.claude/projects/**/*.jsonl` → zdekoduj cwd → pokaż listę do override (jeśli user wybrał [2c] lub [2b])
 
 **0.3 — Klasyfikuj cwd (Claude Code sessions):**
 Glob `~/.claude/projects/**/*.jsonl` → zdekoduj cwd → pokaż listę:
