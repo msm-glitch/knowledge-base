@@ -43,6 +43,8 @@ Czy jest coś co chcesz wyłączyć lub zawęzić?
 
 ⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
 
+*Skip list (legal/poufne) ładowana automatycznie z `config/sources.yaml`.*
+
 Po odpowiedziach:
 - Załaduj `config/notion.yaml` i `config/sources.yaml`
 - Sesje JSONL: filtruj po `timestamp >= [TYDZIEŃ_TEMU]`

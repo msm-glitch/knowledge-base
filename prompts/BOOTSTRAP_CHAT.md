@@ -53,17 +53,7 @@ Które rozmowy skanować?
 
 ---
 
-**[4/4] Compliance — wymagane potwierdzenie**
-Przeczytaj i potwierdź że rozumiesz:
-✓ Raport nie cytuje danych osobowych (PESEL, NIP, imiona beneficjentów Mini Granty)
-✓ Rozmowy legal/NDA → auto-skip (nie analizuję treści)
-✓ Rozmowy z klauzulą anty-AI → STOP i informuję Cię
-✓ Wątpliwe fragmenty → oznaczam "Needs review", nie zapisuję do Notion
-→ Odpowiedz: POTWIERDZAM lub wskaż co chcesz zmienić
-
----
-
-⛔ **Czekam na Twoje odpowiedzi [1], [2], [3], [4] — dopiero potem zaczynam skan.**
+⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
 
 ## PHASE 1: SCAN — Claude Chat history
 
@@ -82,6 +72,8 @@ Dla każdej rozmowy odnotuj:
 - Rozmowy z tagiem legal/private (akta-kcs, UDIP, KRS)
 - Rozmowy z NDA (PwC, Allegro, Forbes itp.) → FLAG w raporcie, nie cytuj
 - Rozmowy osobiste (poza OFF) → skip lub user confirm
+- Klauzula anty-AI w treści → STOP, poinformuj usera
+- Wątpliwe fragmenty → oznacz "Needs review", nie zapisuj do Notion
 
 ## PHASE 2: SCAN — Gmail
 

@@ -42,17 +42,7 @@ Które sesje Cowork skanować?
 
 ---
 
-**[3/3] Compliance — wymagane potwierdzenie**
-Przeczytaj i potwierdź że rozumiesz:
-✓ Raport nie cytuje danych osobowych (PESEL, NIP, imiona beneficjentów Mini Granty)
-✓ Sesje legal/NDA → auto-skip (nie analizuję treści)
-✓ Sesje z klauzulą anty-AI → STOP i informuję Cię
-✓ Wątpliwe fragmenty → oznaczam "Needs review", nie zapisuję do Notion
-→ Odpowiedz: POTWIERDZAM lub wskaż co chcesz zmienić
-
----
-
-⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
+⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
 
 ## PHASE 1: SCAN — Cowork sessions
 

@@ -56,17 +56,7 @@ Jak głęboko skanować?
 
 ---
 
-**[4/4] Compliance — wymagane potwierdzenie**
-Przeczytaj i potwierdź że rozumiesz:
-✓ Raport nie cytuje danych osobowych (PESEL, NIP, imiona beneficjentów)
-✓ Projekty legal/NDA → auto-skip (akta-kcs, UDIP, KRS i podobne)
-✓ Projekty z klauzulą anty-AI → STOP i informuję Cię
-✓ Wątpliwe fragmenty → oznaczam "Needs review", nie zapisuję do Notion
-→ Odpowiedz: POTWIERDZAM lub wskaż co chcesz zmienić
-
----
-
-⛔ **Czekam na Twoje odpowiedzi [1], [2], [3], [4] — dopiero potem zaczynam skan.**
+⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
 
 **0.2 — Po odpowiedziach — załaduj config i pokaż listę CWD:**
 - Odczytaj `config/notion.yaml` i `config/sources.yaml`
@@ -141,6 +131,8 @@ Przed skanowaniem Gmail/Slack/Drive zapytaj:
 "Skanować też: (a) Gmail (b) Slack (c) Google Drive (d) wszystkie (e) tylko Claude sessions"
 
 ## PHASE 1: SCAN — Claude Code (JSONL)
+
+Załaduj skip list z `config/sources.yaml` → `claude_code.skip_patterns`. Foldery pasujące do wzorca → pomiń bez otwierania treści. Jeśli w treści sesji znajdziesz klauzulę anty-AI → STOP i poinformuj usera. Wątpliwe fragmenty → oznacz "Needs review", nie zapisuj do Notion.
 
 Przeskanuj WSZYSTKIE pliki JSONL (poza skip list) z `~/.claude/projects/`.
 
