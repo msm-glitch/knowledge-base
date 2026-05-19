@@ -1,6 +1,6 @@
 # Knowledge Base — Bootstrap Cowork (lifetime scan)
 
-**Wersja:** 1.0 | **Data:** 2026-05-17 | **Tryb:** BOOTSTRAP (jednorazowy)
+**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
 
 **Przeznaczenie:** Wklej w sesji Claude Cowork jednorazowo — lifetime scan wszystkich sesji Cowork + Gmail + Slack + Drive. Po bootstrapie przełącz na `WEEKLY_COWORK.md`.
 
@@ -13,19 +13,17 @@
 ## PROMPT BOOTSTRAP — skopiuj i wklej w Cowork:
 
 ```
-# BOOTSTRAP KNOWLEDGE BASE v1.0 — LIFETIME SCAN (Cowork)
+# BOOTSTRAP KNOWLEDGE BASE v1.1 — LIFETIME SCAN (Cowork)
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan.
 
 ## PHASE 0: PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-Przed skanem zadaję Ci 3 pytania. **Nie przechodzę dalej dopóki nie odpiszesz na wszystkie — nie zakładam żadnych wartości domyślnych.**
-
-Wyświetl poniższy formularz i czekaj:
+Przed skanem zadaję Ci 2 pytania. **Nie przechodzę dalej dopóki nie odpiszesz — nie zakładam żadnych wartości domyślnych.**
 
 ---
 
-**[1/3] Twoje dane**
+**[1/2] Twoje dane**
 Podaj imię i email @off.org.pl.
 → Odpowiedz np.: "Maciek, maciek@off.org.pl"
 
@@ -33,7 +31,7 @@ Podaj imię i email @off.org.pl.
 
 ---
 
-**[2/3] Zakres skanu**
+**[2/2] Zakres skanu**
 Które sesje Cowork skanować?
 → Wybierz i odpisz literę:
 (a) Wszystkie sesje (lifetime — od pierwszej do dziś)
@@ -44,10 +42,26 @@ Które sesje Cowork skanować?
 
 ⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
 
+## PHASE 0.5: CROSS-CUTTING CONCERNS (Cowork)
+
+**Budget cap:** ~80K tokenów (Cowork nie ma lokalnych JSONL).
+Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz zebrane drafty, zaraportuj "Budget cap reached".
+
+**Model:** standard Sonnet dla wszystkich passów.
+
+**Rate limity MCP:** max 10 wywołań/min na źródło. Przy 429: backoff 2s→4s→8s (max 3 próby).
+
+**Error handling:**
+- MCP timeout → retry 2× → `needs_enrichment = true`
+- Notion write fail → retry 1× → log
+- Anti-AI clause → STOP natychmiast
+
+**BEZ SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion. Odrzucone → `Status = Rejected`. Do wzbogacenia → `Status = Draft`.
+
 ## PHASE 1: SCAN — Cowork sessions
 
-Pobierz pełną listę moich sesji Cowork:
-- `list_sessions(all_time=true)` (bootstrap) lub analogicznie
+Pobierz pełną listę sesji:
+- `list_sessions(all_time=true)` (bootstrap)
 
 Dla każdej sesji odnotuj:
 - Data, tytuł, główne zadanie
@@ -57,46 +71,54 @@ Dla każdej sesji odnotuj:
 - Czy Claude nie mógł sobie poradzić sam → potencjalna automatyzacja?
 
 ⚠️ Auto-skip:
-- Sesje legal (akta-kcs, UDIP, KRS) — privacy
+- Sesje legal (akta-kcs, UDIP, KRS)
 - Sesje z PII beneficjentów → REDACT summary
 
 ## PHASE 2: SCAN — Gmail
 
-Przez Gmail MCP, szukaj wątków z ostatnich 90 dni:
-- Query: `(decyzja OR pipeline OR "powtarzalny" OR automatyzacja OR SOP) -label:SPAM`
-- Dla każdego: temat, nadawca, czy sugeruje powtarzalny proces?
-- SKIP: wątki z PESEL, NIP, danymi osobowymi → REDACT
+Przez Gmail MCP, użyj `config/sources.yaml → gmail.query_spec.bootstrap`:
+- Query: `(decyzja OR pipeline OR powtarzalny OR automatyzacja OR SOP OR procedura) -label:SPAM -label:TRASH`
+- Lookback: 90 dni
+- SKIP: wątki z PESEL, NIP → REDACT
 
 ## PHASE 3: SCAN — Slack
 
-Przez Slack MCP, kanały OFF z ostatnich 90 dni:
-- Kanały: #general, #ai-feedback, #planer-dnia, #brand-team, #mini-granty, #full-team
-- Szukaj: pytania powtarzające się, prośby o pomoc, frustrations, decyzje
+Przez Slack MCP, użyj `config/sources.yaml → slack`, lookback 90 dni:
+- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team, #mini-granty, #full-team
+- Szukaj: pytania powtarzające się, prośby o pomoc, frustracje, decyzje
 - SKIP: hasła, tokeny, dane poufne
 
 ## PHASE 4: SCAN — Google Drive
 
-Przez Drive MCP, pliki OFF zmienione w ostatnich 90 dniach:
-- Folder WSD: `1U10_VXe_qxoYOlrSyIpgQKXOUy-og1D-`
+Przez Drive MCP, folder `1U10_VXe_qxoYOlrSyIpgQKXOUy-og1D-`, lookback 90 dni:
 - Odnotuj: tytuły, typy dokumentów, czy sugerują powtarzalny proces
 
-## PHASE 5: KLASYFIKACJA
+## PHASE 5: KLASYFIKACJA — rozłączne drzewo 4-krokowe
 
-Dla każdego wykrytego wzorca/odkrycia:
+Dla każdego wzorca pytaj **po kolei**:
 
-**Czy nadaje się na SOP / Skill / n8n?**
+```
+1. Merytoryczny + powtarzalny + jasny input/output?
+   NIE → POMIŃ (jednorazowe, meta, preferencja osobista)
+   TAK → pytanie 2
 
-| Sygnał | Klasyfikacja |
-|---|---|
-| Ten sam proces ≥2× (różne sesje/maile/Slack) | SOP |
-| Claude proszony o to samo wielokrotnie | Skill Backlog |
-| Jasny trigger + sekwencja między narzędziami | n8n Automation |
-| Jednorazowe, brak powtarzalności | POMIŃ |
+2. Wymaga ludzkiego osądu / decyzji / accountability?
+   TAK → SOP (Executor: Human lub Hybrid)
+       → Krok AI-kreatywny? → Related skills
+       → Krok deterministyczny? → Related n8n
+   NIE → pytanie 3
 
-Priority:
-- High: ≥3 wystąpień LUB blokuje pracę LUB oszczędza >30 min
-- Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
-- Low: 1 wystąpienie, warto zapamiętać
+3. Output kreatywny / wariantowy / brand voice OFF?
+   TAK → Skill Backlog (WYMAGANE: ≥3 wystąpienia)
+       → skills_catalog.yaml: istnieje? → [FIX]
+   NIE → pytanie 4
+
+4. Jasny deterministyczny trigger + pipeline?
+   TAK → n8n Automation (WYMAGANE: ≥2 wystąpienia)
+   NIE → SOP (Human)
+```
+
+**Progi:** SOP ≥2 | Skill ≥3 | n8n ≥2. Poniżej → `candidate_{type}`, NIE do Notion.
 
 ## PHASE 5.5: DUAL-PASS + QUALITY GATES
 
@@ -104,56 +126,52 @@ Priority:
 
 **Pass 2 (weryfikacja) — checklist każdego draftu:**
 ```
-[ ] Skip rules: nie meta, nie "stan skilla", nie jednorazowe
-[ ] Cross-check z config/skills_catalog.yaml — istnieje? → [FIX]; na skip_meta? → POMIŃ
+[ ] Skip: nie meta, nie "stan skilla", nie poniżej progu → odrzuć
+[ ] Cross-check z config/skills_catalog.yaml — match? → [FIX]; skip_meta? → POMIŃ
 [ ] Source URL wypełniony lub "—"
 [ ] User = autor wzorca (mapuj email→Notion Person ID)
 [ ] Date = data oryginalnego zdarzenia
 [ ] Title [NEW]/[FIX]/[BUG]
-[ ] Summary: liczba × + dowód + konkret
+[ ] Summary: liczba × + dowód + konkret + "Next: ___"
+[ ] Jeśli Type=Skill lub n8n: Parent SOP wskazany (slug lub "—")
+[ ] Occurrence ≥ progu per typ
 ```
 
 ### Few-shot:
 
-**✅ DOBRY:** `[NEW] 2026-05-15 · Maciek · Masowy outreach MR — ×10+, Gmail+Chat, ~2h/kampanię`
-**❌ ZŁY:** `Weekly Knowledge Scan` (meta) / `User: Maciek` dla problemu Michała / `Date: dziś`
+**✅ DOBRY:** `[NEW] 2026-05-15 · Maciek · Masowy outreach MR — ×10+, Gmail+Chat, ~2h/kampanię. Parent SOP: mr-mass-outreach`
+**❌ ZŁY:** `Weekly Knowledge Scan` (meta) / `Skill 2×` (poniżej min=3) / `User: Maciek` dla problemu Michała / `Date: dziś` / n8n bez Error handling
 
 ---
 
-## PHASE 5.5b: QUALITY GATES (legacy)
+## PHASE 5.5b: QUALITY GATES
 
 ❌ **NIE ZAPISUJ jeśli:**
-- Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta)
-- "Stan istniejącego skilla" bez konkretnego problemu
-- Jednorazowy moment bez powtarzalności
+- Meta-wpisy (knowledge-base, WSD, etc.)
+- "Stan istniejącego skilla" bez konkretu
+- Poniżej progu: Skill<3, SOP<2, n8n<2
 
-✅ **Title prefix obowiązkowy:**
-- `[NEW]` nowy / `[FIX]` poprawka istniejącego / `[BUG]` blokujący błąd
-
-✅ **Source URL WYMAGANE** (Slack permalink / Gmail link / Drive viewUrl / Cowork session ID). Brak → wpisz `—`.
-
-✅ **User = autor wzorca, NIE skanujący.** Mapuj email na Notion Person ID z config/notion.yaml. ≥3 osoby → "(team-wide)" w Title.
-
-✅ **Date = data ORYGINALNEGO zdarzenia**, nie dziś. Wielokrotny → najnowsze wystąpienie.
-
-✅ **1 wpis = 1 dominujący Type.** Drugi aspekt w Summary.
+✅ **Title prefix:** `[NEW]` nowy / `[FIX]` poprawka / `[BUG]` bug
+✅ **Source URL WYMAGANE** (Cowork session ID lub `—`)
+✅ **User = autor wzorca, NIE skanujący**
+✅ **Date = data ORYGINALNEGO zdarzenia**
+✅ **Parent SOP** = slug dla Skill/n8n, lub `—`
+✅ **n8n MUSI mieć** Error handling (retry + dead letter + Slack alert)
 
 ---
 
 ## PHASE 6: ZAPIS DO NOTION
 
-Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis:
+Dla każdego odkrycia (Type ≠ POMIŃ):
 - Notion Knowledge Base DB: `collection://b01c168b-17f2-4267-91c6-9286a34e43c0`
-- Title: `{YYYY-MM-DD} · {Imię} · {Krótki opis}`
-- Type: SOP | Skill Backlog | n8n Automation
-- Source: [skąd pochodzi]
-- Date: dziś, Week: `{ISO_YEAR}-W{ISO_WEEK}`
-- Summary: 2-3 zdania (co to + dlaczego wdrożyć)
-- Priority: High/Medium/Low
-- Status: New
-- Scan type: Bootstrap
-- User: Notion Person ID → sprawdź `config/notion.yaml` → `users`
-  Fallback: `User name (fallback)` = imię tekstowe (dla Krzysztofa i Roksany)
+- Scan type: Bootstrap, Status: New
+
+**Pola wspólne:** Title, Type, Source, Date, Week, Summary, Priority, User (Notion Person ID z `config/notion.yaml`, fallback: `User name (fallback)` dla Krzysztofa i Roksany), Source URL, Source examples, Occurrences, Sources count, Time saved, Implementation size, **Owner**, **Parent SOP**, ROI score.
+
+**Pola per Type:**
+- SOP: Process slug, Trigger, Inputs, Outputs, Steps (N. Imperatyw. Executor. Output.), Decisions, Definition of Done, Edge cases, Executor overall, Frequency, Related skills, Related n8n
+- Skill: Skill name, Description, Trigger phrases (≥5 DOSŁOWNIE z source), Input/Output format, Examples, Persona/style guide, Edge cases
+- n8n: Flow name, Trigger, Data sources, Transformations, Destinations, **Error handling** (OBOWIĄZKOWE), Volume estimate, Manual steps remaining, **Credentials**, **Dependencies**, **Test plan**
 
 ## PHASE 7: OUTPUT
 
@@ -168,7 +186,8 @@ Przeskanowano:
   • Drive:   X plików / Y odkryć
 
 🎯 Łącznie: Z odkryć → Notion
-  • SOP:            N  • Skill Backlog: N  • n8n: N  • Pominięto: N
+  • SOP: N  • Skill Backlog: N  • n8n: N
+  • Pominięto: N (poniżej progu / brak powtarzalności)
 
 🏆 Top 3 priorytety:
 1. [High] ... 2. [High] ... 3. [Medium] ...
@@ -183,9 +202,9 @@ Przeskanowano:
    - (a) Poniedziałek 10:00 [rekomendowane]
    - (b) Piątek 15:00
    - (c) Nie — uruchamiam manualnie
-3. Zaktualizuj memory: `knowledge-base: last_run={DATE}, mode=bootstrap, discoveries={N}`
+3. Zaktualizuj memory: `knowledge-base: last_run={DATE}, mode=bootstrap, discoveries={N}, by_type={SOP:N, Skill:N, n8n:N}, rejected={N}`
 ```
 
 ---
 
-*Prompt: BOOTSTRAP_COWORK.md v1.0 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: BOOTSTRAP_COWORK.md v1.1 · knowledge-base · msm-glitch/knowledge-base*

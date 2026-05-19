@@ -1,6 +1,6 @@
 # Knowledge Base — Bootstrap Chat (lifetime scan)
 
-**Wersja:** 1.0 | **Data:** 2026-05-17 | **Tryb:** BOOTSTRAP (jednorazowy)
+**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
 
 **Przeznaczenie:** Wklej w Claude Chat (claude.ai) jednorazowo — lifetime scan historii rozmów + Gmail + Slack + Drive. Po bootstrapie przełącz na `WEEKLY_CHAT.md`.
 
@@ -16,19 +16,19 @@
 ## PROMPT BOOTSTRAP — skopiuj i wklej w Claude Chat:
 
 ```
-# BOOTSTRAP KNOWLEDGE BASE v1.0 — LIFETIME SCAN (Chat)
+# BOOTSTRAP KNOWLEDGE BASE v1.1 — LIFETIME SCAN (Chat)
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan mojej historii rozmów z Claude.
 
 ## PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 
-Przed skanem zadaję Ci 4 pytania. **Nie przechodzę dalej dopóki nie odpiszesz na wszystkie — nie zakładam żadnych wartości domyślnych.**
+Przed skanem zadaję Ci 3 pytania. **Nie przechodzę dalej dopóki nie odpiszesz na wszystkie — nie zakładam żadnych wartości domyślnych.**
 
 Wyświetl poniższy formularz i czekaj:
 
 ---
 
-**[1/4] Search & reference chats**
+**[1/3] Search & reference chats**
 Czy masz włączone "Search and reference chats" w Settings → Privacy?
 → Odpowiedz: TAK / NIE
 
@@ -36,7 +36,7 @@ Czy masz włączone "Search and reference chats" w Settings → Privacy?
 
 ---
 
-**[2/4] Twoje dane**
+**[2/3] Twoje dane**
 Podaj imię i email @off.org.pl.
 → Odpowiedz np.: "Maciek, maciek@off.org.pl"
 
@@ -44,16 +44,32 @@ Podaj imię i email @off.org.pl.
 
 ---
 
-**[3/4] Zakres skanu**
+**[3/3] Zakres skanu**
 Które rozmowy skanować?
 → Wybierz i odpisz literę:
 (a) Wszystkie rozmowy (lifetime — od pierwszej do dziś)
 (b) Tylko OFF-related (pomijam rozmowy prywatne/osobiste)
-(c) Wybiórczo — dopisz zakres dat lub tematy np. "od 2026-01-01" / "tylko marketing"
+(c) Wybiórczo — dopisz zakres dat lub tematy np. "od 2026-01-01"
 
 ---
 
 ⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
+
+## PHASE 0.5: CROSS-CUTTING CONCERNS (Chat)
+
+**Budget cap:** ~80K tokenów (Chat nie ma lokalnych JSONL — skanujemy tylko Chat history + MCP sources).
+Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz zebrane drafty, zaraportuj "Budget cap reached".
+
+**Model:** standard Sonnet dla wszystkich passów.
+
+**Rate limity MCP:** max 10 wywołań/min na źródło. Przy 429: backoff 2s→4s→8s (max 3 próby). Po 3 fail: `source_error`, kontynuuj.
+
+**Error handling:**
+- MCP timeout → retry 2× → `needs_enrichment = true`
+- Notion write fail → retry 1× → log
+- Anti-AI clause → STOP natychmiast
+
+**BEZ lokalnego SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion. Odrzucone → `Status = Rejected`.
 
 ## PHASE 1: SCAN — Claude Chat history
 
@@ -63,30 +79,29 @@ Dla każdej rozmowy odnotuj:
 - Data, temat/tytuł
 - Cel zadania i wynik
 - Domena: PM / Mini Granty / Marketing / Ops / Legal / Inne
-- Czy zawierała PII? (Mini Granty, dane osobowe) → REDACT summary
+- Czy zawierała PII? → REDACT summary
 - Czy zadanie się powtarzało w innych rozmowach?
 - Skille/triggery użyte (jeśli widoczne)
 - Czy Claude nie poradził sobie → potencjalna automatyzacja?
 
 ⚠️ Auto-skip:
 - Rozmowy z tagiem legal/private (akta-kcs, UDIP, KRS)
-- Rozmowy z NDA (PwC, Allegro, Forbes itp.) → FLAG w raporcie, nie cytuj
+- Rozmowy z NDA → FLAG w raporcie, nie cytuj
 - Rozmowy osobiste (poza OFF) → skip lub user confirm
-- Klauzula anty-AI w treści → STOP, poinformuj usera
-- Wątpliwe fragmenty → oznacz "Needs review", nie zapisuj do Notion
+- Klauzula anty-AI → STOP
 
 ## PHASE 2: SCAN — Gmail
 
-Przez Gmail MCP, szukaj wątków z ostatnich 90 dni:
-- Query: `(decyzja OR pipeline OR "powtarzalny" OR automatyzacja) -label:SPAM`
-- Dla każdego: temat, nadawca, czy sugeruje powtarzalny proces?
-- SKIP: wątki z PESEL, NIP, danymi beneficjentów → REDACT
+Przez Gmail MCP, użyj `config/sources.yaml → gmail.query_spec.bootstrap`:
+- Query: `(decyzja OR pipeline OR powtarzalny OR automatyzacja OR SOP OR procedura) -label:SPAM -label:TRASH`
+- Lookback: 90 dni
+- SKIP: wątki z PESEL, NIP → REDACT
 
 ## PHASE 3: SCAN — Slack
 
-Przez Slack MCP, kanały OFF z ostatnich 90 dni:
-- #general, #ai-feedback, #planer-dnia, #brand-team, #mini-granty
-- Szukaj: pytania które się powtarzają, frustrations, decyzje
+Przez Slack MCP, użyj `config/sources.yaml → slack`, lookback 90 dni:
+- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team, #mini-granty
+- Szukaj: pytania powtarzające się, frustracje, decyzje
 - SKIP: hasła, tokeny
 
 ## PHASE 4: SCAN — Google Drive
@@ -94,21 +109,32 @@ Przez Slack MCP, kanały OFF z ostatnich 90 dni:
 Przez Drive MCP, pliki OFF zmienione w ostatnich 90 dniach:
 - Odnotuj instrukcje, szablony, procedury → SOP candidates
 
-## PHASE 5: KLASYFIKACJA
+## PHASE 5: KLASYFIKACJA — rozłączne drzewo 4-krokowe
 
-**Czy nadaje się na SOP / Skill / n8n?**
+Dla każdego wzorca pytaj **po kolei**:
 
-| Sygnał | Klasyfikacja |
-|---|---|
-| Ten sam proces ≥2× (różne rozmowy/maile/Slack) | SOP |
-| Claude proszony o to samo zadanie wielokrotnie | Skill Backlog |
-| Jasny trigger + sekwencja między narzędziami (Gmail→Slack→Drive) | n8n Automation |
-| Jednorazowe, brak powtarzalności | POMIŃ |
+```
+1. Merytoryczny + powtarzalny + jasny input/output?
+   NIE → POMIŃ (jednorazowe, meta, preferencja osobista)
+   TAK → pytanie 2
 
-Priority:
-- High: ≥3 wystąpień LUB blokuje pracę
-- Medium: 2 wystąpienia LUB przydatne dla ≥3 osób
-- Low: 1 wystąpienie, warto zapamiętać
+2. Wymaga ludzkiego osądu / decyzji / accountability?
+   TAK → SOP (Executor: Human lub Hybrid)
+       → Krok AI-kreatywny? → Related skills
+       → Krok deterministyczny? → Related n8n
+   NIE → pytanie 3
+
+3. Output kreatywny / wariantowy / brand voice OFF?
+   TAK → Skill Backlog (WYMAGANE: ≥3 wystąpienia)
+       → skills_catalog.yaml: istnieje? → [FIX]
+   NIE → pytanie 4
+
+4. Jasny deterministyczny trigger + pipeline?
+   TAK → n8n Automation (WYMAGANE: ≥2 wystąpienia)
+   NIE → SOP (Human)
+```
+
+**Progi:** SOP ≥2 | Skill ≥3 | n8n ≥2. Poniżej → `candidate_{type}`, NIE do Notion.
 
 ## PHASE 5.5: DUAL-PASS + QUALITY GATES
 
@@ -116,18 +142,17 @@ Priority:
 
 **Pass 2 (weryfikacja):** Dla każdego draftu przejdź checklist:
 ```
-[ ] Skip rules: nie meta, nie "stan skilla bez konkretu", nie jednorazowe
+[ ] Skip rules: nie meta, nie "stan skilla bez konkretu", poniżej progu → odrzuć
 [ ] Cross-check z config/skills_catalog.yaml:
-    - fuzzy match nazwy → jeśli skill już istnieje → wymuś [FIX]
-    - jeśli na skip_meta → POMIŃ wpis
+    - fuzzy match nazwy → [FIX]; skip_meta → POMIŃ
 [ ] Source URL wypełniony (lub jawnie "—")
-[ ] User = autor wzorca, nie skanujący (mapuj email→Notion Person ID)
+[ ] User = autor wzorca (nie skanujący), mapuj email→Notion Person ID
 [ ] Date = data oryginalnego zdarzenia, nie dziś
 [ ] Title z prefiksem [NEW]/[FIX]/[BUG]
-[ ] Summary: liczba wystąpień + dowód (link) + konkret co naprawić
+[ ] Summary: liczba × + dowód + konkret + "Next: ___"
+[ ] Jeśli Type=Skill lub n8n: Parent SOP wskazany (slug lub "—")
+[ ] Occurrence ≥ progu per typ
 ```
-
-Jeśli ≥1 fail → popraw lub odrzuć. Tylko ✅ → zapis.
 
 ### Few-shot — naucz się z prawdziwych przypadków:
 
@@ -135,75 +160,57 @@ Jeśli ≥1 fail → popraw lub odrzuć. Tylko ✅ → zapis.
 ```
 [FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów
 Priority: High (5× miss = intra-source intensity)
-Source: [Claude Chat] | URL: https://claude.ai/chat/abc
-Date: 2026-05-11 (nie dziś!)
-Summary: Skill off-brand-voice v3.3 nie odpala dla 'podopieczni'/'stypendyści'.
-  5× ręczne przepisanie 5-11.05. Fix: dodać do triggerKeywords + description.
+Source: [Claude Chat] | URL: https://claude.ai/chat/abc | Date: 2026-05-11
+Summary: 5× ręczne przepisanie 5-11.05. Fix: dodać do triggerKeywords. Next: Wojciech.
+Parent SOP: —
 ```
 
 **✅ DOBRY [NEW] n8n:**
 ```
 [NEW] 2026-05-15 · Maciek · Masowy outreach do MR — szablon ×10+
 Priority: High (10+ wystąpień + cross-source 2)
-Source: [Gmail, Claude Chat] | URL: https://mail.google.com/.../thread-xyz
-Date: 2026-05-15
-Summary: 10+ maili do Młodzieżowych Rad z identycznym szablonem, tylko nazwa rady różna.
-  Cross-source: Gmail wysyłka + Chat draft. n8n: lista → personalizacja → auto-send.
-  Oszczędność ~2h/kampanię.
+Source: [Gmail, Chat] | URL: https://mail.google.com/.../thread-xyz | Date: 2026-05-15
+Summary: 10+ maili do MR identycznym szablonem. n8n: lista→personalizacja→auto-send. ~2h/kampanię. Next: Maciek buduje flow.
+Parent SOP: mr-mass-outreach
 ```
 
 **❌ ZŁE — odrzucaj/poprawiaj:**
-- `Weekly Knowledge Scan — automatyzacja` → META, POMIŃ
-- `Ewidencja godzinowa — wymaga doprecyzowania` → za ogólne + skill już istnieje → [FIX]
-- `User: Maciek` dla Slack-post Michała → wrong attribution, User = Michał
-- `Date: 2026-05-17` (dzień skanu) → powinno być data oryginalnego zdarzenia
+- `Weekly Knowledge Scan` → META, POMIŃ
+- `Skill — nowy-mail` ale 2× → poniżej progu min=3 → POMIŃ, flag candidate_skill
+- `User: Maciek` dla Slack-post Michała → wrong attribution
+- `Date: dziś` → powinno być data oryginalnego zdarzenia
+- n8n bez pola Error handling → obowiązkowe
 
 ---
 
-## PHASE 5.5b: QUALITY GATES (legacy — zachowane dla pełności)
+## PHASE 5.5b: QUALITY GATES
 
 ❌ **NIE ZAPISUJ jeśli:**
-- Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD` (meta — to ten sam skill)
-- "Stan istniejącego skilla" bez konkretnego problemu/poprawki
-- Jednorazowy moment bez powtarzalności
+- Wpis dotyczy `knowledge-base`, `weekly-discovery`, `team-knowledge-base`, `WSD`
+- "Stan istniejącego skilla" bez konkretnej poprawki
+- Poniżej progu: Skill<3, SOP<2, n8n<2
 
-✅ **Title prefix obowiązkowy:**
-- `[NEW]` — nowy SOP / nowy skill / nowa automatyzacja
-- `[FIX]` — poprawka istniejącego skilla (trigger conflict, missing keywords)
-- `[BUG]` — bug w istniejącym narzędziu
-
-Przykład: `[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów`
-
-✅ **Source URL — WYMAGANE** (jeśli faktycznie brak → wpisz `—`, nie zostawiaj pustego):
-- Slack: permalink wiadomości
-- Gmail: link do wątku
-- Drive: viewUrl
-- Chat: URL konwersacji jeśli dostępny
-
-✅ **User attribution** — kto JEST autorem wzorca, nie skanujący:
-- Wzorzec własny → User = ja
-- Slack post Michała o problemie → User = Michał (mapuj email na Notion Person ID z config/notion.yaml)
-- ≥3 osoby → "(team-wide)" w Title
-
-✅ **Date — data ORYGINALNEGO zdarzenia** (NIE dziś):
-- Slack: data wiadomości / Gmail: data wątku / Chat: data rozmowy
-- Wzorzec wielokrotny → najnowsze wystąpienie
-
-✅ **Multi-type** — 1 wpis = 1 dominujący Type. Drugi aspekt opisz w Summary.
+✅ **Title prefix:** `[NEW]` nowy / `[FIX]` poprawka / `[BUG]` bug
+✅ **Source URL WYMAGANE** (link do oryginału lub `—`)
+✅ **User = autor wzorca, NIE skanujący** (mapuj email na Notion Person ID)
+✅ **Date = data oryginalnego zdarzenia** (nie dziś)
+✅ **Parent SOP** = slug dla Skill/n8n, lub `—`
+✅ **n8n MUSI mieć** Error handling (retry + dead letter + Slack alert)
 
 ---
 
 ## PHASE 6: ZAPIS DO NOTION
 
-Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis:
+Dla każdego odkrycia (Type ≠ POMIŃ):
 - Notion Knowledge Base DB: `collection://b01c168b-17f2-4267-91c6-9286a34e43c0`
-- Title: `{YYYY-MM-DD} · {Imię} · {Krótki opis}`
-- Type: SOP | Skill Backlog | n8n Automation
-- Source: [lista źródeł]
-- Date: dziś, Week: `{ISO_YEAR}-W{ISO_WEEK}`
-- Summary: 2-3 zdania
-- Priority: High/Medium/Low, Status: New, Scan type: Bootstrap
-- User: Notion Person ID z `config/notion.yaml`
+- Scan type: Bootstrap
+
+**Pola wspólne:** Title, Type, Source, Date, Week, Summary, Priority, Status=New, User (Notion Person ID z `config/notion.yaml`), Source URL, Source examples, Occurrences, Sources count, Time saved, Implementation size, **Owner**, **Parent SOP**, ROI score.
+
+**Pola per Type:**
+- SOP: Process slug, Trigger, Inputs, Outputs, Steps (N. Imperatyw. Executor. Output.), Decisions, Definition of Done, Edge cases, Executor overall, Frequency, Related skills, Related n8n
+- Skill: Skill name, Description, Trigger phrases (≥5 DOSŁOWNIE z source), Input/Output format, Examples (pary input+output), Persona/style guide, Edge cases
+- n8n: Flow name, Trigger, Data sources, Transformations, Destinations, **Error handling** (retry+dead letter+alert OBOWIĄZKOWE), Volume estimate, Manual steps remaining, **Credentials**, **Dependencies**, **Test plan**
 
 ## PHASE 7: OUTPUT
 
@@ -218,7 +225,8 @@ Przeskanowano:
   • Drive:  X plików / Y odkryć
 
 🎯 Łącznie: Z odkryć → Notion
-  • SOP: N  • Skill: N  • n8n: N  • Pominięto: N
+  • SOP: N  • Skill: N  • n8n: N
+  • Pominięto: N (poniżej progu / brak powtarzalności)
 
 🏆 Top 3: 1. [High]... 2. [High]... 3. [Medium]...
 
@@ -229,9 +237,9 @@ Przeskanowano:
 
 1. Wyślij post do Slack #ai-feedback (C0AS00SNGQZ)
 2. Przypomnij: ustaw przypomnienie Google Calendar co poniedziałek 10:00 z `WEEKLY_CHAT.md`
-3. Zaktualizuj memory: `knowledge-base: last_run={DATE}, mode=bootstrap`
+3. Zaktualizuj memory: `knowledge-base: last_run={DATE}, mode=bootstrap, discoveries={N}, by_type={SOP:N, Skill:N, n8n:N}, rejected={N}`
 ```
 
 ---
 
-*Prompt: BOOTSTRAP_CHAT.md v1.0 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: BOOTSTRAP_CHAT.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
