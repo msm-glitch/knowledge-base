@@ -17,16 +17,26 @@ sources:
       - krs-
       - wolosiewicz
       - mini-granty
+    sampling_rates:
+      light:  { lines_per_session: 0,  metadata_only: true  }
+      medium: { lines_per_session: 30, metadata_only: false }   # default
+      deep:   { lines_per_session: -1, metadata_only: false }   # full
 
   claude_chat:
     enabled: true
     requires: "Search and reference chats (Settings → Privacy)"
     surface: "Claude.ai Chat"
+    query_spec:
+      bootstrap_lookback: "all-time"
+      weekly_lookback: "7d"
 
   claude_cowork:
     enabled: true
     api: "list_sessions"
     surface: "Claude.ai Project"
+    query_spec:
+      bootstrap_lookback: "all-time"
+      weekly_lookback: "7d"
 
   gmail:
     enabled: true
@@ -34,17 +44,16 @@ sources:
     scan_labels:
       - INBOX
       - SENT
-    keywords:
-      - decision
-      - decyzja
-      - potwierdź
-      - pipeline
-      - SOP
-      - powtarzalny
-      - automatyzacja
     skip_labels:
       - SPAM
       - TRASH
+    query_spec:
+      bootstrap:
+        query: "(decyzja OR pipeline OR SOP OR powtarzalny OR automatyzacja OR procedura OR szablon OR trigger) -label:SPAM -label:TRASH"
+        lookback: "90d"
+      weekly:
+        query: "(decyzja OR pipeline OR SOP OR powtarzalny OR automatyzacja) newer_than:7d -label:SPAM -label:TRASH"
+        lookback: "7d"
 
   slack:
     enabled: true
@@ -56,11 +65,29 @@ sources:
       - brand-team
       - mini-granty
       - full-team
+    channel_ids:
+      general:    ""     # do uzupełnienia przez admina Slack
+      ai-feedback: "C0AS00SNGQZ"
+      planer-dnia: ""    # do uzupełnienia
+      brand-team:  ""    # do uzupełnienia
+      mini-granty: ""    # do uzupełnienia
+      full-team:   ""    # do uzupełnienia
     skip_keywords:
       - PESEL
       - NIP
       - hasło
       - password
+    query_spec:
+      bootstrap_lookback: "90d"
+      weekly_lookback: "7d"
+      search_terms:
+        - "jak to się robi"
+        - "powtarzalny"
+        - "automatyzacja"
+        - "SOP"
+        - "pipeline"
+        - "decyzja"
+        - "procedura"
 
   google_drive:
     enabled: true
@@ -71,10 +98,14 @@ sources:
       - text/plain
       - text/markdown
       - application/vnd.google-apps.document
+      - application/vnd.google-apps.spreadsheet
     skip_patterns:
       - akta
       - NDA
       - confidential
+    query_spec:
+      bootstrap_lookback: "90d"
+      weekly_lookback: "7d"
 
 # Harmonogram weekly
 schedule:
@@ -84,6 +115,7 @@ schedule:
 
 # Progi klasyfikacji (ile wystąpień wzorca = SOP/Skill/n8n kandydat)
 classification_thresholds:
-  sop_min_occurrences: 2        # proces pojawił się ≥2x w różnych sesjach/mailach
-  skill_min_occurrences: 1      # jednorazowe zadanie dla Claude wystarczy
+  sop_min_occurrences: 2        # proces pojawił się ≥2× w różnych sesjach/mailach
+  skill_min_occurrences: 3      # skill musi mieć ≥3 potwierdzonych wystąpień (było: 1)
+  n8n_min_occurrences: 2        # flow musi mieć ≥2 wystąpień lub trigger cykliczny
   n8n_requires_trigger: true    # musi mieć jasny trigger + akcję
