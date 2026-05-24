@@ -29,7 +29,7 @@ users:
   weronika: ""     # do uzupełnienia
   roksana: "FALLBACK"    # brak konta Notion
   bartosz: ""      # do uzupełnienia
-  maciek: ""       # do uzupełnienia
+  maciek: "330d872b-594c-818c-9571-0002f4af5f40"       # do uzupełnienia
   natasza: ""      # do uzupełnienia
 
 slack:
