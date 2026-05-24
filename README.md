@@ -97,14 +97,27 @@ Wykonaj bootstrap **sekwencyjnie** w każdym kanale (jeden po drugim).
 
 ---
 
-## Klasyfikacja odkryć
+## Klasyfikacja odkryć — drzewo 4-krokowe (rozłączne)
 
-| Sygnał | Typ | Kto działA |
+Pytania zadawaj po kolei — pierwszy TAK kończy klasyfikację.
+
+| Krok | Pytanie | TAK → | NIE → |
+|---|---|---|---|
+| 1 | Merytoryczne + powtarzalne + jasny input/output? | krok 2 | **Pominięto** |
+| 2 | Wymaga ludzkiego osądu / decyzji / accountability? | **SOP** (Human/Hybrid) | krok 3 |
+| 3 | Output kreatywny / wariantowy / brand voice OFF? | **Skill Backlog** (min ≥3×) | krok 4 |
+| 4 | Jasny deterministyczny trigger + pipeline? | **n8n Automation** (min ≥2×) | **SOP** (Human) |
+
+**Kto działA:**
+
+| Typ | Owner | Próg |
 |---|---|---|
-| Powtarzalny proces ≥2× w różnych źródłach | **SOP** | Wojciech (przegląda co tydzień) |
-| Claude proszony wielokrotnie o to samo | **Skill Backlog** | Michał (builduje skille) |
-| Jasny trigger + sekwencja między narzędziami | **n8n Automation** | Wojciech / Michał |
-| Jednorazowe, brak powtarzalności | **Pominięto** | — |
+| **SOP** | Wojciech (przegląda co tydzień) | ≥2 wystąpienia |
+| **Skill Backlog** | Michał (builduje skille) | ≥3 wystąpienia |
+| **n8n Automation** | Wojciech / Michał | ≥2 wystąpienia |
+| **Pominięto** | — | poniżej progu lub jednorazowe |
+
+SOP jest encją root — Skill i n8n to sub-resources kroków SOPa (pole `Parent SOP`).
 
 ---
 
@@ -135,4 +148,4 @@ Przed pierwszym użyciem wypełnij `config/notion.yaml`:
 
 ---
 
-*knowledge-base v1.0 · OFF AI v3.0 · 2026-05-17*
+*knowledge-base v1.1 · OFF AI v3.0 · 2026-05-19*

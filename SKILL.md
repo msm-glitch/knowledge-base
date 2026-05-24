@@ -11,6 +11,25 @@ Skill do zbierania wiedzy operacyjnej zespołu OFF z wielu źródeł (Gmail, Sla
 
 ---
 
+## Hierarchia: SOP jako root — Skill/n8n jako sub-resources
+
+SOP jest encją nadrzędną (root) w Knowledge Base. Skill i n8n są **sub-resources** kroków SOPa — nie bytami samodzielnymi.
+
+```
+SOP "partner-reaktywacja"
+├── Krok 1: pobierz listę z CRM          → n8n  (sub-resource: crm-stale-partners)
+├── Krok 2: zweryfikuj fit               → Human
+├── Krok 3: napisz mail otwierający      → Skill (sub-resource: off-reaktywacja-partnera)
+└── Krok 4: wyślij + zapisz + follow-up  → n8n + Skill
+```
+
+**Konsekwencje dla klasyfikacji:**
+- Odkrywasz Skill lub n8n → szukaj parent SOP. Jeśli nie istnieje → utwórz `[NEW] SOP — {slug}` jako osobny wpis w tym samym runie.
+- Wpis Skill/n8n bez Parent SOP → `Parent SOP: —` (standalone), ale to wyjątek, nie reguła.
+- Jedno SOP może mieć wiele powiązanych Skills i n8n flows — każdy z nich ma pole `Parent SOP` wskazujące slug.
+
+---
+
 ## Krok 0: Pre-flight (zawsze)
 
 **0.1 — Wykryj usera:**
@@ -96,7 +115,7 @@ Dla każdej sesji: tytuł, data, skille, domena, wynik.
 ### 1D — Gmail
 
 Przez Gmail MCP (`mcp__ab46da28`):
-- Szukaj wątków z keywords: `decyzja`, `pipeline`, `SOP`, `powtarzalny`, `automatyzacja`
+- Szukaj wątków z keywords i query specs z `config/sources.yaml` → `gmail.query_spec`
 - Filtruj: nie SPAM, nie TRASH
 - Odnotuj: nadawca/odbiorca, temat, czy sugeruje powtarzalny proces
 
@@ -105,7 +124,7 @@ Przez Gmail MCP (`mcp__ab46da28`):
 ### 1E — Slack
 
 Przez Slack MCP (`mcp__8c5de80e`):
-- Kanały z `config/sources.yaml` → `slack.channels`
+- Kanały z `config/sources.yaml` → `slack.channels` (używaj channel_ids, nie nazw)
 - Szukaj: decyzje, procesy, prośby o pomoc które się powtarzają
 - Pomiń: wiadomości z hasłami, danymi poufnymi
 
@@ -113,7 +132,7 @@ Przez Slack MCP (`mcp__8c5de80e`):
 
 Przez Drive MCP (`mcp__7a8eafc1`):
 - Foldery z `config/sources.yaml` → `google_drive.folders`
-- Nowe/zmienione pliki w zakresie dat
+- Nowe/zmienione pliki w zakresie dat z `google_drive.query_spec.lookback`
 - Odnotuj: tytuł, typ dokumentu, czy to procedura/instrukcja/szablon
 
 ---
@@ -163,8 +182,12 @@ Dla każdego draftu sprawdź:
 [ ] 9. WSD-relay check: source=Slack #ai-feedback (C0AS00SNGQZ) i tekst ma "WSD"?
        → ustaw Scan_type=WSD-relay, obniż Priority o 1 poziom
 [ ] 10. Trigger phrases (tylko dla Skill Backlog [FIX]/[NEW]):
-       → wyciągnij konkretne frazy z source które miss/trigger
-       → dopisz na końcu Summary: "Triggers obs.: 'fraza1', 'fraza2'..."
+        → wyciągnij konkretne frazy z source które miss/trigger
+        → dopisz na końcu Summary: "Triggers obs.: 'fraza1', 'fraza2'..."
+[ ] 11. Jeśli Type=Skill lub n8n: wskaż Parent SOP (slug lub "—" jeśli standalone)
+[ ] 12. Czy occurrence count spełnia minimum per typ?
+        → SOP: ≥2 | Skill: ≥3 | n8n: ≥2
+        → jeśli poniżej progu: flag candidate_{type}, NIE zapisuj do Notion
 ```
 
 Jeśli ≥1 check fail → popraw draft LUB odrzuć do `rejected_drafts.log`.
@@ -229,6 +252,7 @@ User: Michał (Notion Person ID)
 Summary: Skill off-brand-voice v3.3 nie odpala dla 'podopieczni'/'stypendyści'/
   'laureaci' — 5× ręczne przepisanie w Chat (5-11.05). Trigger w SKILL.md zawiera
   tylko 'wolontariusze'. Fix: dodać 3 słowa do triggerKeywords + description.
+Parent SOP: —  (standalone fix)
 ```
 
 **Przykład 2 — [NEW] n8n z cross-source:**
@@ -244,6 +268,7 @@ Summary: 10+ maili do MR (Młodzieżowe Rady Miast) z identycznym szablonem prom
   PM OFF, tylko nazwa rady różna. Maciek pisał ręcznie + Claude pomagał stylem
   (cross-source: Gmail wysyłka + Chat draft). Oszczędność ~2h/kampanię.
   n8n workflow: lista MR → personalizacja nazwy → auto-send.
+Parent SOP: mr-mass-outreach
 ```
 
 #### ❌ ZŁE wpisy (poprawiaj/odrzucaj):
@@ -279,18 +304,43 @@ Date: 2026-05-17 (dzień skanowania)
 
 ---
 
-### Kryteria (z diagramu przepływu):
+### Kryteria klasyfikacji — rozłączne drzewo 4-krokowe
 
-Dla każdego wzorca/odkrycia odpowiedz na pytanie:
+Pytania zadawaj **po kolei** — pierwszy TAK kończy klasyfikację.
 
-**Czy nadaje się na SOP / Skill / n8n?**
+```
+1. Czy wzorzec jest merytoryczny + powtarzalny + ma jasny input/output?
+   NIE → POMIŃ (jednorazowe, meta, preferencja osobista, dane wrażliwe)
+   TAK → pytanie 2
 
-| Sygnał | Klasyfikacja |
-|---|---|
-| Ten sam proces wykonywany ≥2× przez różnych ludzi lub w różnych sesjach | **SOP** |
-| Claude jest proszony o to samo zadanie wielokrotnie (np. "napisz email w stylu OFF") | **Skill Backlog** |
-| Jest jasny trigger + sekwencja akcji między narzędziami (Gmail → Slack → Drive) | **n8n Automation** |
-| Jednorazowe zadanie, brak powtarzalności, brak wartości uogólnienia | **POMIŃ** — nic nie zapisuj |
+2. Czy proces wymaga ludzkiego osądu / decyzji / accountability w środku?
+   TAK → SOP  (Executor: Human lub Hybrid)
+       → Czy krok w SOPie jest AI-kreatywny? → oznacz w Related skills
+       → Czy krok jest deterministyczny? → oznacz w Related n8n
+   NIE → pytanie 3
+
+3. Czy output jest kreatywny / wariantowy / wymaga brand voice OFF?
+   TAK → Skill Backlog (wymagane: ≥3 wystąpienia — sprawdź config/sources.yaml)
+       → Sprawdź skills_catalog.yaml: skill już istnieje? → [FIX], nie [NEW]
+   NIE → pytanie 4
+
+4. Czy jest jasny deterministyczny trigger + pipeline bez punktów decyzji?
+   TAK → n8n Automation (wymagane: ≥2 wystąpienia lub trigger >1×/tydzień)
+   NIE → SOP (Executor: Human, do późniejszej dekompozycji)
+```
+
+**Krok 5 (opcjonalny — multi-executor SOP):** Jeśli SOP z pytania 2 lub 4 zawiera >1 typ executora (AI + Auto + Human) — utwórz SOP główny **i osobne wpisy** dla każdego sub-zasobu (Skill/n8n) z `Parent SOP = slug SOPa`.
+
+### 6 precedensów dla przypadków granicznych
+
+| # | Sytuacja | Klasyfikacja | Uzasadnienie |
+|---|---|---|---|
+| 1 | Proces z 1 krokiem kreatywnym + 3 deterministycznymi | **SOP** główny + **Skill** sub-resource | Decyzja o uruchomieniu wymaga człowieka (pyt. 2 TAK); Skill implementuje 1 krok |
+| 2 | n8n flow z pause-point "czekaj na zatwierdzenie Michała" | **SOP** (Executor: Hybrid) | Każdy punkt decyzji człowieka = SOP; n8n to krok SOPa, nie byt samodzielny |
+| 3 | Claude proszony o to samo 2× (poniżej min 3) | **POMIŃ** — flag `candidate_skill` | Skill min=3; wróć z wpisem dopiero przy 3. potwierdzonym wystąpieniu |
+| 4 | n8n flow uruchamiany <1×/tydzień (np. roczny raport) | **SOP** (Human) lub n8n z `Priority: Low` | Koszt budowy > oszczędność przy niskiej volumetrii; decyzja ROI |
+| 5 | Nowy skill pokrywa 80% istniejącego | **[FIX]** istniejącego | Fuzzy match ≥0.75 na skills_catalog → zawsze [FIX], nigdy [NEW] |
+| 6 | Zadanie powtarzalne ale "każdy przypadek inny" | Wyciągnij 3-7 **powtarzalnych kroków** → **SOP** | "Robimy elastycznie" = brak dokumentacji, nie brak procesu; wymuś Steps |
 
 ### Priorytety:
 
@@ -298,7 +348,12 @@ Dla każdego wzorca/odkrycia odpowiedz na pytanie:
 |---|---|
 | High | Powtarza się ≥3× LUB blokuje pracę LUB zajmuje >30 min |
 | Medium | Powtarza się 2× LUB byłoby przydatne dla ≥3 osób |
-| Low | Jednorazowe ale warto zapamiętać |
+| Low | Spełnia minimum occurrence, ale niska pilność |
+
+Minimum occurrence per typ (z `config/sources.yaml → classification_thresholds`):
+- SOP: ≥2 wystąpienia
+- Skill: ≥3 wystąpienia
+- n8n: ≥2 wystąpienia (lub jasny trigger cykliczny ≥1×/tydzień)
 
 ---
 
@@ -314,7 +369,7 @@ Dla każdego wzorca/odkrycia odpowiedz na pytanie:
    - "Skill X działa, użytkownicy go testują" → POMIŃ
    - "Skill X wymaga poprawki Y bo trigger nie działa" → ZAPISZ jako [FIX]
 
-3. **Jednorazowe pytania** — mniej niż 2× w jakimkolwiek źródle i brak wartości uogólnienia
+3. **Jednorazowe pytania** — poniżej progu minimalnego (SOP<2, Skill<3, n8n<2)
 
 ### ✅ Title prefix — rozróżnij typ działania:
 
@@ -370,46 +425,98 @@ Jeśli odkrycie pasuje do 2 typów (np. SOP + n8n):
 - Wybierz **dominujący** Type (główne działanie wymagane)
 - W Summary wymień drugi aspekt: "Type: n8n Automation, ale wymaga też SOP-a opisującego kiedy uruchamiać"
 
+### ❌ Zaktualizowane anty-wzorce (v1.1)
+
+| Anty-wzorzec | Przykład | Co zrobić |
+|---|---|---|
+| Skill < 3 wystąpień | `[NEW] Skill — nowy-mail` ale tylko 2× w source | POMIŃ; flag `candidate_skill`; wróć przy 3. wystąpieniu |
+| Brak `Parent SOP` dla Skill/n8n | Pole puste zamiast slug lub `—` | Wpisz slug parent SOPa lub jawnie `—` (standalone) |
+| Wymyślone trigger phrases | "Skill triggeruje na X" bez evidence | Skopiuj dosłownie ≥5 fraz z Slack/Gmail/Chat |
+| n8n bez error handling | "Wysyła maile i gotowe" | Dopisz retry + dead letter + Slack alert do kogo |
+| Skill nakłada się na istniejący | `nowy-mail-skill` gdy `followup-mail` istnieje | Zmień na `[FIX] followup-mail`, nie twórz nowego |
+| User = skanujący zamiast autora wzorca | Maciek skanuje, wzorzec u Michała | User = Michał |
+| SOP bez Definition of Done | "Skończone gdy wszystko gotowe" | Wymuś checklist 3-5 pozycji sprawdzalnych |
+| Odkrycie bez Source URL | Puste pole lub placeholder | Wpisz jawnie `—`; bez URL nie idzie do Notion |
+
+---
+
+## Krok 3.6: Cross-cutting concerns (adapted multi-channel)
+
+### Model selection per pass
+
+| Pass | Claude Code | Claude Chat | Claude Cowork |
+|---|---|---|---|
+| Pass 1: Discovery scan | standard Sonnet (opcjonalnie Opus dla głębokiego bootstrapu) | standard Sonnet | standard Sonnet |
+| Pass 2: Enrichment | standard Sonnet | standard Sonnet | standard Sonnet |
+| Pass 3: Quality gates | standard Sonnet | standard Sonnet | standard Sonnet |
+| Pass 4: Anti-duplicate | standard Sonnet (Notion query) | standard Sonnet | standard Sonnet |
+
+### Budget cap per run
+
+| Kanał | Cap tokenów | Uwagi |
+|---|---|---|
+| Claude Code (local) | ~200K | pełny skan JSONL + 4 źródła |
+| Claude Chat | ~80K | brak lokalnych JSONL |
+| Claude Cowork | ~80K | brak lokalnych JSONL |
+
+Jeśli cap osiągnięty przed końcem skanu: zakończ bieżące źródło, przejdź do zapisu zebranych draftów, zaraportuj `"Budget cap reached — N sources skipped"` w podsumowaniu.
+
+### Rate limity MCP
+
+- Max **10 wywołań MCP/min** na jedno źródło
+- Przy `429 Too Many Requests`: exponential backoff 2 s → 4 s → 8 s (max 3 próby)
+- Po 3 niepowodzeniach: oznacz źródło `source_error`, kontynuuj kolejne źródło
+
+### Error handling
+
+| Błąd | Akcja |
+|---|---|
+| MCP timeout / 5xx | Retry 2× z backoff; jeśli fail → draft dostaje `needs_enrichment = true` |
+| Notion write fail | Retry 1×; jeśli fail → log w podsumowaniu, NIE porzucaj draftu |
+| Anti-AI clause w source | STOP natychmiast, poinformuj usera, nie zapisuj źródła |
+| PII wykryte w drafcie | REDACT przed zapisem; dodaj `Status = New` + notatka "Needs review" |
+
+### Brak lokalnego storage
+
+**BEZ SQLite.** Dedup wyłącznie przez Notion query (Pass 3 → `notion-query-database-view`).
+
+**BEZ `/runs/` na dysk.** Drafty trzymaj in-memory do zapisu w Notion. Wpisy odrzucone zapisz w Notion ze `Status = Rejected`. Wpisy do wzbogacenia zapisz ze `Status = Draft` (do triage przez Wojciecha).
+
 ---
 
 ## Krok 4: Zapis do Notion Knowledge Base
 
-### Pola wpisu:
+### Pola wspólne (wszystkie typy):
 
 ```
-Title:    "{YYYY-MM-DD} · {Imię} · [PREFIX] {Krótki opis odkrycia}"
-Type:     SOP | Skill Backlog | n8n Automation
-Source:   [Claude Code | Claude Chat | Claude Cowork | Gmail | Slack | Google Drive]
-Date:     data ostatniego wystąpienia (YYYY-MM-DD)
-Week:     ISO week (np. "2026-W21")
-Summary:  Format STRICT:
-  Zdanie 1: Co — wzorzec + liczba × + zakres dat
-  Zdanie 2: Dowód — gdzie/kto (Source URLs)
-  Zdanie 3: Triggers obs.: 'fraza1', 'fraza2' (TYLKO dla Skill Backlog)
-  Zdanie 4: Next: {1 actionable krok dla ownera}
-Priority: High | Medium | Low (po Pass 4 normalizacji)
-Status:   New | Triaged | In Progress | Implemented | Validated | Rejected
-User:     Notion Person ID (z config/notion.yaml)
+Title:               "[NEW/FIX/BUG] {YYYY-MM-DD} · {Imię} · {Type slug} — {opis}"
+Type:                SOP | Skill Backlog | n8n Automation
+Source:              [Claude Code | Claude Chat | Claude Cowork | Gmail | Slack | Google Drive]
+Date:                data ostatniego wystąpienia (YYYY-MM-DD)
+Week:                ISO week (np. "2026-W21")
+Summary:             Format STRICT:
+                       Zdanie 1: Co — wzorzec + liczba × + zakres dat
+                       Zdanie 2: Dowód — gdzie/kto (Source URLs)
+                       Zdanie 3: Triggers obs. (TYLKO Skill Backlog)
+                       Zdanie 4: Next: {1 actionable krok dla ownera}
+Priority:            High | Medium | Low (po Pass 4 normalizacji)
+Status:              New | Triaged | In Progress | Implemented | Validated | Rejected | Draft
+User:                Notion Person ID (z config/notion.yaml)
 User name (fallback): imię tekstowo jeśli brak Notion ID
-Source URL: PERMALINK do oryginału (Slack: slack_get_permalink, nie app_redirect)
-Scan type: Bootstrap | Weekly | WSD-relay
-Occurrences: liczba wystąpień wzorca (int, default 1)
-Sources count: liczba unikalnych źródeł (int, default 1)
+Source URL:          PERMALINK do oryginału (Slack: slack_get_permalink, nie app_redirect)
+Source examples:     2-3 dodatkowe linki do prawdziwych instancji
+Scan type:           Bootstrap | Weekly | WSD-relay
+Occurrences:         liczba wystąpień wzorca (int, default 1)
+Sources count:       liczba unikalnych źródeł (int, default 1)
 Time saved (min/week): szacunek oszczędności po wdrożeniu (int)
 Implementation size: S (<2h) | M (2-8h) | L (>8h)
-Related skill: nazwa skilla z skills_catalog (dla [FIX]/[BUG]) lub "—"
-Owner suggestion: kto powinien obsłużyć (autor / skill-creator / n8n-admin / Wojciech)
-ROI score: occurrences × sources × time_saved_min / impl_size_factor  (auto)
+Owner:               kto odpowiada za wdrożenie (mapuj wg tabeli poniżej)
+Parent SOP:          slug parent SOPa (dla Skill/n8n) lub "—" (dla SOP root lub standalone)
+ROI score:           occurrences × sources × time_saved_min / impl_size_factor  (auto)
 ```
 
-**Implementation size factor:** S=1, M=4, L=12 (do obliczenia ROI).
-**ROI score** jest kluczem do sortowania backlogu — pokazuje co dawać do realizacji NAJPIERW.
+**Mapowanie Owner per typ wpisu:**
 
-**Jak szacować time_saved:**
-- Z wpisów: jeśli source mówi "2h/kampanię, 4× w miesiącu" → 2h×4/4 tyg = 120 min/tydzień
-- Jeśli brak danych: konserwatywnie 15 min/tydzień (Low), 60 (Medium), 180 (High)
-
-**Jak ustawić Owner suggestion:**
 | Typ wpisu | Owner |
 |---|---|
 | [FIX] istniejącego skilla | skill-creator (Wojciech) |
@@ -418,6 +525,69 @@ ROI score: occurrences × sources × time_saved_min / impl_size_factor  (auto)
 | [NEW] n8n Automation | n8n-admin (Maciek) |
 | [NEW] SOP | autor wzorca |
 | Team-wide (≥3 osoby) | Wojciech + Maciek |
+
+**Implementation size factor:** S=1, M=4, L=12 (do obliczenia ROI).
+
+**Jak szacować time_saved:**
+- Z wpisów: jeśli source mówi "2h/kampanię, 4× w miesiącu" → 2h×4/4 tyg = 120 min/tydzień
+- Jeśli brak danych: konserwatywnie 15 min/tydzień (Low), 60 (Medium), 180 (High)
+
+---
+
+### Schema 4A — Type: SOP (dodatkowe pola obowiązkowe)
+
+```
+Process slug:           kebab-case unikalny (np. partner-reaktywacja)
+Trigger:                Kiedy proces się odpala — 1 zdanie (event / data / request)
+Inputs:                 Lista: dane, dostęp, decyzje wymagane na wejściu
+Outputs:                Lista: artefakt, decyzja, stan po zakończeniu
+Steps:                  3-7 kroków: "N. {Imperatyw}. Executor: {Human|AI|Auto|Hybrid}. Output: {co}."
+Decisions:              Punkty decyzyjne: "Decyzja: {co?} → Kryterium: {jak?} → Decydent: {kto?}"
+Definition of Done:     Checklist 3-5 pozycji sprawdzalnych (nie ogólniki)
+Edge cases:             Lista "if X → do Y" lub "STOP + ping {kto}"
+Executor target overall: Human | AI | Hybrid | Auto (dominujący)
+Frequency:              daily | weekly | monthly | quarterly | yearly | on-demand
+Related skills:         lista slugów Skill z tego SOPa (z skills_catalog.yaml)
+Related n8n:            lista flow n8n (lub kandydatów do budowy)
+```
+
+---
+
+### Schema 4B — Type: Skill Backlog (dodatkowe pola obowiązkowe)
+
+```
+Skill name:          kebab-case (sprawdź skills_catalog.yaml — nie duplikuj)
+Description:         Do czego skill służy — 1-2 zdania kontekstu biznesowego
+Trigger phrases:     ≥5 fraz DOSŁOWNIE skopiowanych z source (Slack/Gmail/Chat)
+Input format:        Co user wkleja/pisze (notatki, lista, link, brief)
+Output format:       Co skill produkuje (struktura, długość, format)
+Examples:            2-3 pary: raw input + ideal output (z prawdziwych instancji)
+Persona/style guide: Brand voice OFF + odniesienie do off-brand-voice jeśli stosuje
+Edge cases:          Co skill MUSI rozróżnić (VIP vs casual, program A vs B)
+Related skills:      inne skille OFF w łańcuchu (sekwencja wywołań)
+```
+
+---
+
+### Schema 4C — Type: n8n Automation (dodatkowe pola obowiązkowe)
+
+```
+Flow name:              kebab-case
+Trigger:                Konkretny event (cron / webhook / form submit / DB change)
+Data sources:           Systemy na wejściu z konkretnymi API/endpointami
+Transformations:        Co flow robi z danymi (filter / enrich / dedupe / map / aggregate)
+Destinations:           Gdzie ląduje output (system + akcja)
+Error handling:         Retry strategy + dead letter + Slack alert do kogo (OBOWIĄZKOWE)
+Volume estimate:        Ile rekordów/triggerów dziennie/tygodniowo
+Manual steps remaining: Które kroki ZOSTAJĄ przy człowieku i dlaczego (zawsze coś zostaje)
+Credentials:            Lista wymaganych kluczy API / tokenów / service accounts
+Dependencies:           Zewnętrzne systemy i ich wersje (monday.com, Google Forms, etc.)
+Test plan:              Jak zweryfikować że flow działa — 1-3 scenariusze testowe
+Related SOP:            Slug SOPa, którego krokiem jest ten flow
+Related skill:          Czy w pipeline jest call do Claude skilla
+```
+
+---
 
 ### Wywołanie MCP:
 
@@ -480,7 +650,7 @@ Przeskanowano:
   • SOP:            N wpisów
   • Skill Backlog:  N wpisów
   • n8n Automation: N wpisów
-  • Pominięto:      N (brak powtarzalności)
+  • Pominięto:      N (poniżej progu / brak powtarzalności)
 ```
 
 ---
@@ -528,7 +698,8 @@ Dla Chat: przypomnij o kalendarzu Google
 
 Po zakończeniu (bootstrap lub weekly) zaktualizuj memory:
 ```
-knowledge-base: last_run={DATE}, mode={MODE}, discoveries={N}
+knowledge-base: last_run={DATE}, mode={MODE}, discoveries={N},
+  by_type={SOP:N, Skill:N, n8n:N}, rejected={N}
 ```
 
 ---
@@ -557,4 +728,4 @@ Imię: [Twoje imię], Email: [Twój @off.org.pl]
 
 ---
 
-*knowledge-base v1.0 · OFF AI v3.0 · msm-glitch/knowledge-base*
+*knowledge-base v1.1 · OFF AI v3.0 · msm-glitch/knowledge-base*
