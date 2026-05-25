@@ -56,11 +56,18 @@ flowchart TD
         E["🗃️ Claude Knowledge Base\n📊 Knowledge Base DB\n(Type: SOP | Skill | n8n)\nParent SOP — relacja"]:::notion
     end
 
+    subgraph ARTIFACTS["ARTEFAKTY (auto-gen, Krok 4.5)"]
+        F1[artifacts/sops/{slug}.md\ntemplate z prior SOPs]:::sop
+        F2[artifacts/n8n/{slug}.json\nworkflow skeleton]:::n8n
+        F3[artifacts/skills/{slug}/SKILL.md\nfrontmatter + body]:::skill
+    end
+
     A1 & A2 & A3 & A4 --> B
     B --> C
     C -->|TAK| D1 & D2 & D3
     D1 & D2 & D3 --> E
-    C -->|NIE / poniżej progu| F[/nic nie zapisuje\nlub candidate_flag/]
+    E -->|"[NEW] only"| F1 & F2 & F3
+    C -->|NIE / poniżej progu| G[/nic nie zapisuje\nlub candidate_flag/]
 
     classDef source fill:#fff3e0,stroke:#f57c00,color:#333
     classDef scheduled fill:#1a1a2e,stroke:#444,color:#fff
@@ -96,7 +103,10 @@ sequenceDiagram
     S->>S: Klasyfikacja 4-krokowa: SOP | Skill | n8n | POMIŃ
     S->>S: Pass 2-4: quality gates + anti-duplicate (Notion query)
     S->>N: create pages → Knowledge Base DB
-    S->>SL: post → #ai-feedback
+    S->>N: query SOPs DB → derive adaptive template
+    S->>S: Generate artifacts (sops/.md, n8n/.json, skills/SKILL.md)
+    S->>S: git commit + push (branch kb-scan/{date})
+    S->>SL: post → #ai-feedback (z linkami do artefaktów)
     S->>U: Podsumowanie + setup weekly task?
 
     Note over U,N: 🔄 WEEKLY (co poniedziałek 10:00)
@@ -106,6 +116,9 @@ sequenceDiagram
         S->>S: Tylko NOWE wzorce (pass anti-duplicate)
         alt ≥1 odkrycie
             S->>N: create/update pages → Knowledge Base DB
+            S->>N: query SOPs DB → derive adaptive template
+            S->>S: Generate artifacts dla [NEW] wpisów
+            S->>S: git commit + push
             S->>SL: post → #ai-feedback (jeśli High priority)
         else 0 odkryć
             S->>U: Cicha notyfikacja "Brak nowych"

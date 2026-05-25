@@ -25,17 +25,23 @@ Szczegółowy diagram: [`FLOW.md`](FLOW.md)
 knowledge-base/
 ├── SKILL.md                     # Główny skill — 8-krokowy proces
 ├── FLOW.md                      # Diagramy Mermaid przepływu danych
+├── COLUMNS.md                   # Glossary kolumn Notion KB DB
 ├── README.md                    # Ten plik
 ├── config/
 │   ├── notion.yaml              # Notion DB IDs, user map, Slack channel
-│   └── sources.yaml             # Konfiguracja źródeł + skip patterns
-└── prompts/
-    ├── BOOTSTRAP_CHAT.md        # Lifetime scan w Claude Chat (jednorazowo)
-    ├── BOOTSTRAP_COWORK.md      # Lifetime scan w Cowork (jednorazowo)
-    ├── BOOTSTRAP_CC.md          # Lifetime scan w Claude Code (jednorazowo)
-    ├── WEEKLY_CHAT.md           # 7-day scan w Chat (co poniedziałek)
-    ├── WEEKLY_COWORK.md         # 7-day scan w Cowork (scheduled task)
-    └── WEEKLY_CC.md             # 7-day scan w Claude Code (co poniedziałek)
+│   ├── sources.yaml             # Konfiguracja źródeł + skip patterns
+│   └── skills_catalog.yaml      # Katalog skilli OFF (cross-check)
+├── prompts/
+│   ├── BOOTSTRAP_CHAT.md        # Lifetime scan w Claude Chat (jednorazowo)
+│   ├── BOOTSTRAP_COWORK.md      # Lifetime scan w Cowork (jednorazowo)
+│   ├── BOOTSTRAP_CC.md          # Lifetime scan w Claude Code (jednorazowo)
+│   ├── WEEKLY_CHAT.md           # 7-day scan w Chat (co poniedziałek)
+│   ├── WEEKLY_COWORK.md         # 7-day scan w Cowork (scheduled task)
+│   └── WEEKLY_CC.md             # 7-day scan w Claude Code (co poniedziałek)
+└── artifacts/                   # Auto-gen drafts (Krok 4.5) — tworzone per scan
+    ├── sops/{slug}.md           # SOP draft (template adaptacyjny)
+    ├── n8n/{slug}.json          # n8n workflow skeleton
+    └── skills/{slug}/SKILL.md   # Skill draft
 ```
 
 ---
@@ -87,6 +93,8 @@ Wykonaj bootstrap **sekwencyjnie** w każdym kanale (jeden po drugim).
 
 **Knowledge Base DB:** `3709c230152c40a2a46adbaf2b9f40b1`
 **Collection:** `b01c168b-17f2-4267-91c6-9286a34e43c0`
+
+> Co oznacza każda kolumna w Knowledge Base DB — [`COLUMNS.md`](COLUMNS.md) (glossary + filtry + anti-wzorce).
 
 ### Kluczowe filtry:
 
