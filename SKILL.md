@@ -600,9 +600,9 @@ ROI score:           occurrences × sources × time_saved_min / impl_size_factor
 
 | Typ wpisu | Owner |
 |---|---|
-| [FIX] istniejącego skilla | skill-creator (Wojciech) |
+| [FIX] istniejącego skilla | owner skilli (Maciek) |
 | [BUG] blokujący | autor wzorca + Wojciech |
-| [NEW] Skill Backlog | skill-creator (Wojciech) |
+| [NEW] Skill Backlog | owner skilli (Maciek) |
 | [NEW] n8n Automation | n8n-admin (Maciek) |
 | [NEW] SOP | autor wzorca |
 | Team-wide (≥3 osoby) | Wojciech + Maciek |
@@ -704,7 +704,7 @@ Po zapisie do Notion każdy wpis ma już wszystkie pola potrzebne do wygenerowan
 |---|---|---|
 | SOP | `artifacts/sops/{Process_slug}.md` | autor wzorca |
 | n8n Automation | `artifacts/n8n/{Flow_name}.json` | Maciek |
-| Skill Backlog | `artifacts/skills/{Skill_name}/SKILL.md` | Wojciech |
+| Skill Backlog | `artifacts/skills/{Skill_name}/SKILL.md` | Maciek |
 
 `[FIX]` wpisy NIE generują nowego artefaktu — owner robi punktową edycję istniejącego pliku (slug w Title wskazuje który).
 

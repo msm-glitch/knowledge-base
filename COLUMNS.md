@@ -37,9 +37,9 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 
 | Typ wpisu | Owner |
 |---|---|
-| `[FIX]` istniejącego skilla | skill-creator (Wojciech) |
+| `[FIX]` istniejącego skilla | owner skilli (Maciek) |
 | `[BUG]` blokujący | autor wzorca + Wojciech |
-| `[NEW] Skill Backlog` | skill-creator (Wojciech) |
+| `[NEW] Skill Backlog` | owner skilli (Maciek) |
 | `[NEW] n8n Automation` | n8n-admin (Maciek) |
 | `[NEW] SOP` | autor wzorca |
 | Team-wide (≥3 osoby) | Wojciech + Maciek |

@@ -11,10 +11,10 @@ version: "2.2"
 # Owner = osoba odpowiedzialna za WDROŻENIE wpisu danego typu/akcji.
 # Wartości to klucze z config/notion.yaml → users (mapowane na Notion Person ID).
 owner_by_kind:
-  fix_existing_skill:   wojciech   # [FIX] istniejącego skilla → skill-creator
+  fix_existing_skill:   maciek     # [FIX] istniejącego skilla → owner skilli (Maciej)
   bug_blocking:         author+wojciech   # [BUG] blokujący → autor wzorca + Wojciech
-  new_skill_backlog:    wojciech   # [NEW] Skill Backlog → skill-creator
-  new_n8n_automation:   maciek     # [NEW] n8n Automation → n8n-admin
+  new_skill_backlog:    maciek     # [NEW] Skill Backlog → owner skilli (Maciej)
+  new_n8n_automation:   maciek     # [NEW] n8n Automation → n8n-admin (Maciej)
   new_sop:              author     # [NEW] SOP → autor wzorca (root entity)
   team_wide:            wojciech+maciek   # eskalacja gdy ≥3 różnych userów
 
@@ -32,8 +32,5 @@ escalation:
   compliance:  wojciech    # NDA, RODO
   strategy:    michal      # jak interpretować wyniki
 
-# UWAGA — sprzeczność do rozstrzygnięcia przez zespół:
-#   README mówił, że skille builduje Michał. SKILL.md/COLUMNS.md mówiły Wojciech (skill-creator).
-#   Przyjęto Wojciech (zgodnie z dwiema znormalizowanymi tabelami owner-mapping).
-#   Jeśli faktycznym ownerem buildu skilli jest Michał — zmień `new_skill_backlog` i
-#   `fix_existing_skill` na `michal` w TYM pliku (i tylko tu).
+# Owner skilli: Maciej (maciek) — decyzja właściciela repo, 2026-05-29.
+#   (Wcześniej README mówił Michał, SKILL.md/COLUMNS.md Wojciech — rozstrzygnięte na Maciej.)

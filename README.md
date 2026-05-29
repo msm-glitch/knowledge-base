@@ -132,14 +132,14 @@ Pytania zadawaj po kolei — pierwszy TAK kończy klasyfikację.
 | Typ | Owner (wdrożenie) | Próg |
 |---|---|---|
 | **SOP** | autor wzorca (Wojciech triażuje kolejkę co tydzień) | ≥2 wystąpienia |
-| **Skill Backlog** | Wojciech (skill-creator) | ≥3 wystąpienia |
+| **Skill Backlog** | Maciek (owner skilli) | ≥3 wystąpienia |
 | **n8n Automation** | Maciek (n8n-admin) | ≥2 wystąpienia |
 | **Pominięto** | — (ledger kandydatów dolicza do progu) | poniżej progu lub jednorazowe |
 
 SOP jest encją root — Skill i n8n to sub-resources kroków SOPa (pole `Parent SOP`).
 
-> Wcześniej ta tabela mówiła Skill→Michał, n8n→Wojciech/Michał — sprzecznie z SKILL.md/COLUMNS.md.
-> Ujednolicone wg `config/ownership.yaml`. Jeśli skille faktycznie builduje Michał — zmień to w configu.
+> Owner skilli i n8n = Maciej (decyzja właściciela repo, 2026-05-29). Kanon: `config/ownership.yaml`.
+> (Wcześniej README mówił Skill→Michał, n8n→Wojciech/Michał — rozstrzygnięte.)
 
 ---
 
