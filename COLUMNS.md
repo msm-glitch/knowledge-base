@@ -19,7 +19,7 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 | **Priority** | select | `High / Medium / Low` po Pass 4 normalizacji (target: 20/50/30%) | Jeśli wszystko jest High → priorytet traci znaczenie. Normalizacja wymusza wybór |
 | **Status** | select | Workflow: `New → Triaged → In Progress → Implemented → Validated`. Bocznie: `Rejected`, `Draft` | Wojciech filtruje `Status = New` w cotygodniowym przeglądzie |
 | **User** | person (Notion) | Notion Person ID **autora wzorca**, NIE skanującego | Jeśli skanujący widzi problem Michała w Slacku → User = Michał (nie skanujący). Bez tego atrybucja jest błędna |
-| **User name (fallback)** | text | Imię tekstem dla osób bez konta Notion | Krzysztof, Roksana — nie mają Notion accounts, muszą być wymienieni nie-relacyjnie |
+| **User name (fallback)** | text | Imię tekstem dla osób bez konta Notion | Mechanizm awaryjny. Cały team OFF ma już konta Notion (od 2026-05-29) — pole zostaje dla przypadków bez relacji (np. "WSD report") |
 | **Source URL** | url | **Permalink** do oryginału. Slack: `slack_get_permalink` (NIE app_redirect). Brak → wpisz jawnie `—` | Bez URL nie da się zweryfikować wpisu — staje się "wierz mi". Każdy wpis musi mieć ślad |
 | **Source examples** | text | 2-3 dodatkowe linki do innych instancji tego samego wzorca | Pokazuje "to nie pojedynczy incydent" — backup dla głównego URL |
 | **Scan type** | select | `Bootstrap` (lifetime, raz) / `Weekly` (7d) / `WSD-relay` (cytat z #ai-feedback) | WSD-relay obniża Priority o 1 — bo to relay, nie nowe odkrycie |
@@ -33,11 +33,13 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 
 ### Mapowanie Owner per typ wpisu
 
+> Kanon: [`config/ownership.yaml`](config/ownership.yaml) → `owner_by_kind`. Tabela poniżej to lustro.
+
 | Typ wpisu | Owner |
 |---|---|
-| `[FIX]` istniejącego skilla | skill-creator (Wojciech) |
+| `[FIX]` istniejącego skilla | owner skilli (Maciek) |
 | `[BUG]` blokujący | autor wzorca + Wojciech |
-| `[NEW] Skill Backlog` | skill-creator (Wojciech) |
+| `[NEW] Skill Backlog` | owner skilli (Maciek) |
 | `[NEW] n8n Automation` | n8n-admin (Maciek) |
 | `[NEW] SOP` | autor wzorca |
 | Team-wide (≥3 osoby) | Wojciech + Maciek |
@@ -131,4 +133,4 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 
 ---
 
-*COLUMNS.md · knowledge-base v1.1 · msm-glitch/knowledge-base*
+*COLUMNS.md · knowledge-base v2.2 · msm-glitch/knowledge-base*

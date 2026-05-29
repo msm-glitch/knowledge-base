@@ -1,6 +1,6 @@
 # Knowledge Base — Bootstrap Claude Code (lifetime scan)
 
-**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
+**Wersja:** 2.2 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
 
 **Przeznaczenie:** Wklej w sesji Claude Code (CLI) jednorazowo — lifetime scan wszystkich sesji terminalowych + Gmail + Slack + Drive. Po bootstrapie przełącz na `WEEKLY_CC.md`.
 
@@ -13,7 +13,7 @@
 ## PROMPT BOOTSTRAP — skopiuj i wklej w sesji `claude`:
 
 ```
-# BOOTSTRAP KNOWLEDGE BASE v1.1 — LIFETIME SCAN (Claude Code)
+# BOOTSTRAP KNOWLEDGE BASE v2.2 — LIFETIME SCAN (Claude Code)
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan.
 
@@ -59,13 +59,18 @@ Jak głęboko skanować?
 ⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
 
 ## PHASE 0.5: CROSS-CUTTING CONCERNS (Claude Code)
+**Gate konfiguracji (item #1) — STOP jeśli niepełna:**
+Jeśli masz terminal/repo: `python3 scripts/kb_setup.py validate` (exit≠0 → pokaż błędy, `resolve`, STOP).
+W Chat/Cowork sprawdź ręcznie, że `config/notion.yaml → users` i `config/sources.yaml → slack.channel_ids`
+nie są puste — jeśli są, STOP i uzupełnij (inaczej zła atrybucja / martwe kanały).
+
 
 Przed skanem skonfiguruj limity:
 
 **Budget cap:** ~200K tokenów dla full scan (JSONL + Gmail + Slack + Drive).
 Jeśli cap osiągnięty przed końcem: zakończ bieżące źródło, zapisz zebrane drafty, zaraportuj "Budget cap reached — N sources skipped".
 
-**Model:** standard Sonnet dla wszystkich passów. Dla bootstrapu z opcją (C) Deep możesz wybrać Opus dla Pass 1 (głębsza analiza JSONL) — tylko na żądanie usera.
+**Model:** modele per pass wg `config/sources.yaml → models` (Sonnet: skan · Haiku: token strategy Light · Opus: bootstrap Deep na żądanie). Dla bootstrapu z opcją (C) Deep możesz wybrać Opus dla Pass 1 (głębsza analiza JSONL) — tylko na żądanie usera.
 
 **Rate limity MCP:** max 10 wywołań/min na źródło. Przy 429: backoff 2s→4s→8s (max 3 próby). Po 3 fail: oznacz źródło `source_error`, kontynuuj.
 
@@ -74,7 +79,7 @@ Jeśli cap osiągnięty przed końcem: zakończ bieżące źródło, zapisz zebr
 - Notion write fail → retry 1× → log w podsumowaniu
 - Anti-AI clause → STOP natychmiast, poinformuj
 
-**BEZ lokalnego SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion. Odrzucone → `Status = Rejected`. Do wzbogacenia → `Status = Draft`.
+**BEZ lokalnego SQLite / BEZ /runs/ na dysk.** (item #4: lekki stan w `state/` — ledger kandydatów + watermarki, scripts/kb_state.py) Drafty in-memory → Notion. Odrzucone → `Status = Rejected`. Do wzbogacenia → `Status = Draft`.
 
 ---
 
@@ -313,4 +318,4 @@ Przeskanowano:
 
 ---
 
-*Prompt: BOOTSTRAP_CC.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: BOOTSTRAP_CC.md v2.2 · knowledge-base · msm-glitch/knowledge-base*

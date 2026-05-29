@@ -1,0 +1,36 @@
+# Ownership — JEDNO źródło prawdy dla mapowania ownerów (item #2)
+#
+# Wcześniej owner był opisany w 3 miejscach (README, SKILL.md, COLUMNS.md) i wartości
+# się rozjechały (README: Skill→Michał, n8n→Wojciech/Michał; SKILL/COLUMNS: Skill→Wojciech,
+# n8n→Maciek). Tu jest kanon — pozostałe pliki mają się do niego odnosić, nie powielać go.
+#
+# Przy rozbieżności: TEN plik wygrywa.
+
+version: "2.2"
+
+# Owner = osoba odpowiedzialna za WDROŻENIE wpisu danego typu/akcji.
+# Wartości to klucze z config/notion.yaml → users (mapowane na Notion Person ID).
+owner_by_kind:
+  fix_existing_skill:   maciek     # [FIX] istniejącego skilla → owner skilli (Maciej)
+  bug_blocking:         author+wojciech   # [BUG] blokujący → autor wzorca + Wojciech
+  new_skill_backlog:    maciek     # [NEW] Skill Backlog → owner skilli (Maciej)
+  new_n8n_automation:   maciek     # [NEW] n8n Automation → n8n-admin (Maciej)
+  new_sop:              author     # [NEW] SOP → autor wzorca (root entity)
+  team_wide:            wojciech+maciek   # eskalacja gdy ≥3 różnych userów
+
+# Rola "triager" — kto robi cotygodniowy przegląd kolejki (Status=New).
+triager: wojciech
+
+# Progi związane z atrybucją zespołową (rozłączne od owner_by_kind):
+team_wide:
+  tag_at_users: 2       # ≥2 różnych userów → dopisz "(team-wide)" do Title
+  escalate_owner_at_users: 3   # ≥3 różnych userów → owner = team_wide (Wojciech+Maciek)
+
+# Eskalacja problemów (z README — tu jako kanon):
+escalation:
+  tech:        wojciech    # skill nie działa, API error
+  compliance:  wojciech    # NDA, RODO
+  strategy:    michal      # jak interpretować wyniki
+
+# Owner skilli: Maciej (maciek) — decyzja właściciela repo, 2026-05-29.
+#   (Wcześniej README mówił Michał, SKILL.md/COLUMNS.md Wojciech — rozstrzygnięte na Maciej.)

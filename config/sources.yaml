@@ -63,20 +63,34 @@ sources:
       - ai-feedback
       - planer-dnia
       - brand-team
-      - mini-granty
       - full-team
     channel_ids:
-      general:    ""     # do uzupełnienia przez admina Slack
-      ai-feedback: "C0AS00SNGQZ"
-      planer-dnia: ""    # do uzupełnienia
-      brand-team:  ""    # do uzupełnienia
-      mini-granty: ""    # do uzupełnienia
-      full-team:   ""    # do uzupełnienia
+      general:     "C036P6SKGJK"   # public
+      ai-feedback: "C0AS00SNGQZ"   # public
+      planer-dnia: "C0ANUH76UE7"   # private
+      brand-team:  "C047NLZT3UH"   # private
+      full-team:   "C04GVFWKW4D"   # private
+    # #mini-granty WYKLUCZONY ze skanu (item compliance): kanał zawiera PII beneficjentów
+    # Mini Granty — spójne z claude_code.skip_patterns (mini-granty) i drive.skip_patterns.
+    # Dodatkowo ID nieodczytane (kanał prywatny / bot nie jest członkiem). Jeśli mimo PII ma
+    # być skanowany: dodaj bota do kanału, wpisz ID i dopisz 'mini-granty' z powrotem do channels.
+    excluded_channels:
+      mini-granty: "compliance: PII beneficjentów; ID nieodczytane (private/no-bot)"
     skip_keywords:
       - PESEL
       - NIP
       - hasło
       - password
+    # Self-ingestion guard (item #6): system POSTUJE do #ai-feedback i go SKANUJE.
+    # Bez tego własne podsumowanie KB wpada jako "odkrycie" (pętla). Pomijaj wiadomości:
+    self_ingestion_guard:
+      skip_if_starts_with:
+        - "🧠 Bootstrap Knowledge Base"
+        - "🧠 Weekly Knowledge Base"
+        - "🔄 Knowledge Base Weekly"
+        - "📊 Knowledge Base Bootstrap"
+      skip_bot_authors: true   # pomiń posty wysłane przez konto bota/integracji KB
+      note: "WSD-relay (cytaty raportu WSD) obsługuje osobno wsd_relay_signals w skills_catalog.yaml"
     query_spec:
       bootstrap_lookback: "90d"
       weekly_lookback: "7d"
@@ -119,3 +133,43 @@ classification_thresholds:
   skill_min_occurrences: 3      # skill musi mieć ≥3 potwierdzonych wystąpień (było: 1)
   n8n_min_occurrences: 2        # flow musi mieć ≥2 wystąpień lub trigger cykliczny
   n8n_requires_trigger: true    # musi mieć jasny trigger + akcję
+
+# Anti-duplicate (Pass 3) — okno czasowe zależne od trybu (item #4).
+# Powód: bootstrap skanuje lifetime/90d, więc sztywne ±14d gubiło duplikaty starsze
+# niż 2 tygodnie. Weekly zostaje wąskie.
+dedup:
+  window_days:
+    bootstrap: 365     # przy lifetime scan szukaj duplikatów w całym roku
+    weekly: 14         # przy 7-dniowym skanie wąskie okno wystarcza
+  merge_at: 0.75       # similarity ≥ → MERGE (lustro kb_lib.MERGE_AT)
+  flag_at: 0.55        # similarity ≥ → FLAG do decyzji usera
+  # implementacja: scripts/kb_lib.py (jaccard + skill_name + user)
+
+# Trwały stan między uruchomieniami (item #4) — patrz scripts/kb_state.py i state/.
+state:
+  candidates_path: "state/candidates.json"   # ledger subprogowych wzorców (akumulacja occurrences)
+  watermarks_path: "state/watermarks.json"   # od kiedy skanować per źródło
+  enabled: true
+
+# Model per pass (item #9) — aktualizacja: środowisko OFF działa na Opus/Sonnet 4.x.
+# (Wcześniej SKILL.md mówił wszędzie "standard Sonnet" — nieaktualne.)
+models:
+  discovery_scan: "sonnet"     # Pass 1 — szeroki skan; tani i szybki
+  deep_bootstrap: "opus"       # Pass 1 dla opcji (C) Deep — głębsza analiza JSONL (na żądanie)
+  enrichment: "sonnet"         # Pass 2
+  quality_gates: "sonnet"      # Pass 3
+  light_metadata: "haiku"      # token strategy Light (tylko metadane/tytuły) — najtańszy
+
+# Scan ownership (item #8) — kto skanuje co, żeby N osób nie skanowało N× tych samych
+# wspólnych źródeł (koszt × N + N× ryzyko duplikatów).
+scan_ownership:
+  shared_sources:              # skanuje JEDEN team-runner (1× na tydzień dla całego zespołu)
+    - slack
+    - google_drive
+  shared_runner: maciek        # właściciel zespołowego skanu źródeł wspólnych
+  personal_sources:            # każdy skanuje TYLKO swoje (prywatne, nie-współdzielone)
+    - claude_code
+    - claude_chat
+    - claude_cowork
+    - gmail                    # skrzynka osobista — każdy swoją
+  note: "Atrybucja (User=autor wzorca) działa nadal; team-runner ustawia User wg autora wiadomości."

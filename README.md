@@ -1,159 +1,340 @@
-# knowledge-base
+<div align="center">
 
-System zbierania wiedzy operacyjnej zespołu OFF z wielu źródeł (Gmail, Slack, Google Drive, sesje Claude) i klasyfikowania odkryć jako: **SOP**, **Skill Backlog** lub **n8n Automation** — bezpośrednio do Notion.
+![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3500&pause=900&color=6E56CF&center=true&vCenter=true&width=640&lines=Operacyjna+wiedza+zespolu+OFF;Gmail+%C2%B7+Slack+%C2%B7+Drive+%C2%B7+Claude+-%3E+Notion;SOP+%C2%B7+Skill+%C2%B7+n8n+--+klasyfikacja+automatyczna)
 
-Zastępuje i rozszerza skill `team-knowledge-base` o wieloźródłowy skan + ustrukturyzowaną klasyfikację.
+# 🧠 knowledge-base
 
----
+**Zbiera wiedzę operacyjną zespołu z wielu źródeł — myśli z Claude AI, klasyfikuje do Notion.**
 
-## Jak to działa (diagram)
+![Claude](https://img.shields.io/badge/Claude-Sonnet%20%2F%20Opus-6E56CF?logo=anthropic&logoColor=white)
+![Notion](https://img.shields.io/badge/Notion-KB%20DB-000000?logo=notion&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)
+![Slack](https://img.shields.io/badge/Slack-skan%20%2B%20%23ai--feedback-4A154B?logo=slack&logoColor=white)
+![Gmail](https://img.shields.io/badge/Gmail-skan-EA4335?logo=gmail&logoColor=white)
+![Drive](https://img.shields.io/badge/Google%20Drive-skan-4285F4?logo=googledrive&logoColor=white)
 
-```
-Gmail ──┐
-Slack ──┤──▶ Scheduled Prompt ──▶ SOP / Skill / n8n? ──▶ Notion KB
-Drive ──┤        pn. 10:00            (jeśli NIE → pomiń)
-Claude ─┘      lub Bootstrap
-```
-
-Szczegółowy diagram: [`FLOW.md`](FLOW.md)
+</div>
 
 ---
 
-## Struktura repozytorium
+> *Jest poniedziałek, 10:00. Skan rusza sam.*
+> *Przegląda ostatnie 7 dni: maile, Slacka, Drive, sesje z Claude.*
+> *Claude pyta przy każdym wzorcu: to procedura (SOP), skill, czy automatyzacja n8n?*
+> *Liczy ROI, odsiewa duplikaty, redaguje PESEL-e i zapisuje do Notion.*
+> *O 10:05 na #ai-feedback ląduje top 3 priorytetów.*
+>
+> Nic, co zespół robi powtarzalnie, nie ginie.
+
+knowledge-base powstał z prostego problemu: wiedza operacyjna zespołu **rozłazi się po
+narzędziach** — coś ustalono na Slacku, coś w mailu, coś w sesji z Claude — i nikt tego nie
+spina. To narzędzie skanuje te źródła, rozpoznaje **powtarzalne** wzorce i zamienia je w
+konkretne artefakty: procedury (SOP), kandydatów na skille Claude i automatyzacje n8n —
+prosto do Notion. Działa wewnątrz Claude (Chat / Cowork / Code), bez własnego serwera.
+
+---
+
+## Jak to wygląda w praktyce
 
 ```
-knowledge-base/
-├── SKILL.md                     # Główny skill — 8-krokowy proces
-├── FLOW.md                      # Diagramy Mermaid przepływu danych
-├── COLUMNS.md                   # Glossary kolumn Notion KB DB
-├── README.md                    # Ten plik
-├── config/
-│   ├── notion.yaml              # Notion DB IDs, user map, Slack channel
-│   ├── sources.yaml             # Konfiguracja źródeł + skip patterns
-│   └── skills_catalog.yaml      # Katalog skilli OFF (cross-check)
-├── prompts/
-│   ├── BOOTSTRAP_CHAT.md        # Lifetime scan w Claude Chat (jednorazowo)
-│   ├── BOOTSTRAP_COWORK.md      # Lifetime scan w Cowork (jednorazowo)
-│   ├── BOOTSTRAP_CC.md          # Lifetime scan w Claude Code (jednorazowo)
-│   ├── WEEKLY_CHAT.md           # 7-day scan w Chat (co poniedziałek)
-│   ├── WEEKLY_COWORK.md         # 7-day scan w Cowork (scheduled task)
-│   └── WEEKLY_CC.md             # 7-day scan w Claude Code (co poniedziałek)
-└── artifacts/                   # Auto-gen drafts (Krok 4.5) — tworzone per scan
-    ├── sops/{slug}.md           # SOP draft (template adaptacyjny)
-    ├── n8n/{slug}.json          # n8n workflow skeleton
-    └── skills/{slug}/SKILL.md   # Skill draft
+📊 Knowledge Base Weekly — Maciej — 2026-05-25 (W21)
+
+Przeskanowano (7 dni):  Slack 142 · Gmail 38 · Drive 9 · Claude 17 sesji
+Nowe odkrycia: 4 → Notion
+  • SOP: 1   • Skill Backlog: 2   • n8n: 1   • Pominięto: 11 (poniżej progu)
+  ↑ Cross-source boost: 2 wzorce w ≥2 źródłach
+
+🏆 Top priorytety:
+  1. [High] off-brand-voice — brak triggera 'podopieczni' (Skill, 5× miss)
+  2. [High] Masowy outreach do MR — ten sam szablon ×10+ (n8n)
+  3. [Medium] partner-reaktywacja — kwartalny proces bez SOP-a (SOP)
+```
+
+A tak wygląda pojedynczy wpis, który ląduje w Notion:
+
+```
+[FIX] 2026-05-11 · Michał · off-brand-voice — dodaj 'podopieczni' do triggerów
+Type: Skill Backlog   Priority: High   Owner: Maciek   Parent SOP: —
+Summary: Skill off-brand-voice nie odpala dla 'podopieczni'/'stypendyści' —
+  5× ręczne przepisanie (5-11.05). Triggers obs.: 'napisz do podopiecznych'.
+  Next: dodać 3 słowa do triggerKeywords.
+ROI score: 90   Source URL: https://claude.ai/chat/abc-2026-05-11
 ```
 
 ---
 
-## Quick Start — dla każdego członka zespołu OFF
+## Funkcje
 
-### Krok 1: Bootstrap (jednorazowo)
+<details>
+<summary><b>🌳 Klasyfikacja 4-krokowa (rozłączna)</b></summary>
 
-Wybierz swój kanał i wklej odpowiedni prompt:
+Każdy wykryty wzorzec przechodzi drzewo decyzyjne — pierwszy TAK kończy:
 
-| Kanał | Prompt |
-|---|---|
-| Claude Chat (claude.ai) | [`prompts/BOOTSTRAP_CHAT.md`](prompts/BOOTSTRAP_CHAT.md) |
-| Claude Cowork | [`prompts/BOOTSTRAP_COWORK.md`](prompts/BOOTSTRAP_COWORK.md) |
-| Claude Code (CLI) | [`prompts/BOOTSTRAP_CC.md`](prompts/BOOTSTRAP_CC.md) |
+1. Merytoryczny + powtarzalny + jasny input/output? **NIE → POMIŃ**
+2. Wymaga ludzkiego osądu / decyzji? **TAK → SOP** (Human/Hybrid)
+3. Output kreatywny / brand voice OFF? **TAK → Skill Backlog** (≥3 wystąpienia)
+4. Deterministyczny trigger + pipeline? **TAK → n8n Automation** (≥2) / **NIE → SOP**
 
-**Kto używa jakich kanałów:**
+SOP jest encją root; Skill i n8n to sub-resources kroków SOPa (pole `Parent SOP`).
 
-| Osoba | Kanały do Bootstrap |
-|---|---|
-| Michał | Cowork + Chat + Claude Code |
-| Wojciech | Cowork + Chat + Claude Code |
-| Krzysztof | Chat + Cowork + Claude Code |
-| Maciek | Chat + Cowork + Claude Code |
-| Kamil, Zuzanna, Natalia, Weronika, Roksana, Bartosz, Natasza | Chat + Cowork |
+</details>
 
-Wykonaj bootstrap **sekwencyjnie** w każdym kanale (jeden po drugim).
+<details>
+<summary><b>🔌 Skan wieloźródłowy</b></summary>
 
-### Krok 2: Weekly (co poniedziałek 10:00)
+Jedno przejście obejmuje cztery źródła przez konektory MCP:
+- **Gmail** — wątki, decyzje, powtarzalne procesy
+- **Slack** — kanały zespołu (skan + post wyników na #ai-feedback)
+- **Google Drive** — instrukcje, szablony, procedury
+- **Claude** — sesje Code (JSONL) / Chat / Cowork
 
-| Kanał | Prompt | Tryb |
+Tryb `bootstrap` skanuje cały lifetime jednorazowo; `weekly` tylko ostatnie 7 dni.
+
+</details>
+
+<details>
+<summary><b>⚙️ Deterministyczny rdzeń (scripts/)</b></summary>
+
+Logika, która musi być powtarzalna, jest w testowanym kodzie (nie „liczona w głowie"):
+- **similarity / dedup** (Jaccard + nazwa skilla + user) → MERGE / FLAG / CREATE
+- **ROI score** = `occurrences × sources × time_saved / impl_factor`
+- **normalizacja priorytetów** (anty-inflacja: High ≤ 20%)
+- **fuzzy match** do katalogu skilli → wymusza `[FIX]` zamiast `[NEW]`
+
+`python3 -m unittest discover -s scripts/tests` — 24 testy.
+
+</details>
+
+<details>
+<summary><b>🧠 Pamięć między skanami (state/)</b></summary>
+
+- **Ledger kandydatów** (`state/candidates.json`) — dolicza wystąpienia subprogowych
+  wzorców między skanami, więc Skill „≥3×" widziany 1×/tydzień w końcu dobije do progu.
+- **Watermarki** (`state/watermarks.json`) — od kiedy skanować per źródło, żeby weekly
+  nie czytał wszystkiego od nowa.
+
+</details>
+
+<details>
+<summary><b>🔒 Compliance gate (PII)</b></summary>
+
+Zanim cokolwiek trafi do Notion/Git, każde pole tekstowe przechodzi deterministyczną
+redakcję: **PESEL** i **NIP** (z sumą kontrolną — mało false-positive), **IBAN**, email,
+telefon. Wpis z danymi wysokiej pewności nie idzie dalej bez redakcji.
+
+</details>
+
+<details>
+<summary><b>📂 Auto-generacja artefaktów + metryki</b></summary>
+
+Z każdego `[NEW]` wpisu Notion skill generuje draft do `artifacts/` (SOP `.md` /
+n8n `.json` / skill `SKILL.md`) na branchu `kb-scan/{data}` — z cyklem życia i review SLA.
+`scripts/metrics.py` liczy skuteczność systemu (implemented vs rejected rate, inflacja High%).
+
+</details>
+
+---
+
+## Architektura
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  ŹRÓDŁA   Gmail · Slack · Google Drive · Claude (Code/Chat/Cowork)
+└─────────────────────────┬────────────────────────────────────┘
+                          │  prompt: bootstrap (lifetime) / weekly (7 dni)
+                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│  SKILL.md — proces 8-krokowy                                   │
+│   0 gate configu → 1 skan(+watermark) → 2 compliance(PII)      │
+│   → 3 drzewo 4-krokowe + Pass 1-4 (dedup/ROI/normalizacja)     │
+│   → 4 zapis → 4.5 artefakty → 5 boost → 6 Slack → 8.5 metryki  │
+└──────┬───────────────────┬───────────────────┬────────────────┘
+       ▼                   ▼                   ▼
+  scripts/             state/              config/
+  kb_lib · compliance  candidates.json     notion · sources
+  kb_state · metrics   watermarks.json     ownership · skills_catalog
+       │
+       ▼
+┌──────────────────────────────────────────────────────────────┐
+│  WYJŚCIE   Notion KB DB  ·  artifacts/*  ·  Slack #ai-feedback │
+└──────────────────────────────────────────────────────────────┘
+```
+
+**Brak własnego backendu i deployu.** knowledge-base działa wewnątrz Claude i korzysta z
+konektorów MCP. Stan trzymany jest w lekkich, commitowanych plikach `state/` (bez bazy danych).
+
+---
+
+## Tryby uruchomienia
+
+Skill odpala się przez wklejenie gotowego promptu z `prompts/` w odpowiednim kanale Claude:
+
+| Tryb | Kiedy | Zakres | Prompt |
+|---|---|---|---|
+| `bootstrap` | jednorazowo (pierwsze użycie) | cały lifetime | `prompts/BOOTSTRAP_{CHAT,COWORK,CC}.md` |
+| `weekly` | co poniedziałek 10:00 | ostatnie 7 dni | `prompts/WEEKLY_{CHAT,COWORK,CC}.md` |
+
+| Kanał Claude | Bootstrap | Weekly |
 |---|---|---|
-| Chat | [`prompts/WEEKLY_CHAT.md`](prompts/WEEKLY_CHAT.md) | Manual (przypomnienie w kalendarzu) |
-| Cowork | [`prompts/WEEKLY_COWORK.md`](prompts/WEEKLY_COWORK.md) | Scheduled task (Cowork auto) |
-| Claude Code | [`prompts/WEEKLY_CC.md`](prompts/WEEKLY_CC.md) | Scheduled task lub manual |
+| **Chat** (claude.ai) | `BOOTSTRAP_CHAT.md` | `WEEKLY_CHAT.md` (przypomnienie w kalendarzu) |
+| **Cowork** | `BOOTSTRAP_COWORK.md` | `WEEKLY_COWORK.md` (scheduled task) |
+| **Code** (CLI) | `BOOTSTRAP_CC.md` | `WEEKLY_CC.md` (scheduled task / manual) |
 
 ---
 
-## Notion — bazy danych
+## Uruchomienie lokalne
+
+### Wymagania
+
+- **Python 3.9+** (rdzeń deterministyczny + walidator)
+- **PyYAML** (`pip install pyyaml`)
+- Dostęp do **Claude**: Chat (claude.ai) / Cowork / Code (CLI)
+- Konektory **MCP**: Notion, Slack, Gmail, Google Drive (włączone w środowisku Claude)
+
+### Kroki
+
+```bash
+# 1. Sklonuj repozytorium
+git clone https://github.com/msm-glitch/knowledge-base.git
+cd knowledge-base
+
+# 2. Zwaliduj konfigurację (gate — blokuje skan jeśli niepełna)
+python3 scripts/kb_setup.py validate
+python3 scripts/kb_setup.py resolve     # mówi CO i SKĄD uzupełnić
+
+# 3. Uruchom testy rdzenia
+python3 -m unittest discover -s scripts/tests -v
+
+# 4. Odpal skan — wklej prompt z prompts/ w Claude
+#    (najpierw bootstrap, potem co tydzień weekly)
+```
+
+---
+
+## Konfiguracja (`config/`)
+
+knowledge-base **nie używa `.env`** — cała konfiguracja jest w wersjonowanych plikach YAML:
+
+| Plik | Co konfiguruje |
+|---|---|
+| `config/notion.yaml` | Notion DB IDs + Person IDs zespołu (mapowanie atrybucji) |
+| `config/sources.yaml` | źródła, progi, okno dedup, state, modele per pass, scan ownership, self-ingestion guard |
+| `config/ownership.yaml` | **kanon** owner mappingu (kto wdraża) + eskalacja |
+| `config/skills_catalog.yaml` | katalog skilli OFF — cross-check `[FIX]` vs `[NEW]` |
+
+Walidator jest **gatem** — skan się nie zaczyna, jeśli brakuje krytycznych pól (Notion DB IDs,
+Slack channel IDs dla aktywnych kanałów):
+
+```bash
+python3 scripts/kb_setup.py validate    # exit≠0 → STOP, pokaż braki
+```
+
+---
+
+## Połączenia (MCP) i bazy Notion
+
+Zamiast własnych integracji/OAuth, knowledge-base korzysta z konektorów MCP środowiska Claude.
+Brak konektora = źródło pomijane (graceful degradation).
+
+| Konektor | Po co |
+|---|---|
+| **Notion** | zapis odkryć + query anti-duplicate |
+| **Slack** | skan kanałów zespołu + post wyników na `#ai-feedback` |
+| **Gmail** | skan wątków (decyzje, powtarzalne procesy) |
+| **Google Drive** | skan plików (instrukcje, szablony) |
 
 **Parent:** 🧠 Claude Knowledge Base (`356fab98-766f-81eb-8194-f33ebeed7f51`)
 
-| Baza | Przeznaczenie |
-|---|---|
-| **Knowledge Base** | Odkrycia z weekly/bootstrap — SOP, Skill, n8n |
-| Sessions | Wpisy per sesja Claude (skill `team-knowledge-base`) |
-| SOPs | Zatwierdzone procedury operacyjne |
-| Skills Backlog | Kandydaci na nowe skille OFF |
+| Baza | ID | Przeznaczenie |
+|---|---|---|
+| **Knowledge Base** | `3709c230152c40a2a46adbaf2b9f40b1` | Odkrycia: SOP / Skill / n8n |
+| SOPs | `deaf78c2362146cea5987eceb3220227` | Zatwierdzone procedury |
+| Skills Backlog | `da811c4f224b4697919d9ed82d33bf76` | Kandydaci na skille |
+| Sessions | `62f940a08fb342d79fcfb809e7c7c96c` | Wpisy per sesja Claude |
 
-**Knowledge Base DB:** `3709c230152c40a2a46adbaf2b9f40b1`
-**Collection:** `b01c168b-17f2-4267-91c6-9286a34e43c0`
-
-> Co oznacza każda kolumna w Knowledge Base DB — [`COLUMNS.md`](COLUMNS.md) (glossary + filtry + anti-wzorce).
-
-### Kluczowe filtry:
-
-- `Type = SOP, Status = New` → co wymaga standaryzacji
-- `Type = Skill Backlog, Priority = High` → co warto zbudować
-- `Type = n8n Automation` → co warto zautomatyzować
-- `Title contains "team-wide"` → wzorce u wielu osób
+Najczęstsze filtry: `Type=SOP, Status=New` · `Type=Skill Backlog, Priority=High` ·
+`Type=n8n Automation` · `Title contains "team-wide"`. Pełny glossary kolumn → [`COLUMNS.md`](COLUMNS.md).
 
 ---
 
-## Klasyfikacja odkryć — drzewo 4-krokowe (rozłączne)
+## Owner i progi
 
-Pytania zadawaj po kolei — pierwszy TAK kończy klasyfikację.
+Kanon: [`config/ownership.yaml`](config/ownership.yaml) — przy rozbieżności config wygrywa.
 
-| Krok | Pytanie | TAK → | NIE → |
-|---|---|---|---|
-| 1 | Merytoryczne + powtarzalne + jasny input/output? | krok 2 | **Pominięto** |
-| 2 | Wymaga ludzkiego osądu / decyzji / accountability? | **SOP** (Human/Hybrid) | krok 3 |
-| 3 | Output kreatywny / wariantowy / brand voice OFF? | **Skill Backlog** (min ≥3×) | krok 4 |
-| 4 | Jasny deterministyczny trigger + pipeline? | **n8n Automation** (min ≥2×) | **SOP** (Human) |
-
-**Kto działA:**
-
-| Typ | Owner | Próg |
+| Typ | Owner (wdrożenie) | Próg wystąpień |
 |---|---|---|
-| **SOP** | Wojciech (przegląda co tydzień) | ≥2 wystąpienia |
-| **Skill Backlog** | Michał (builduje skille) | ≥3 wystąpienia |
-| **n8n Automation** | Wojciech / Michał | ≥2 wystąpienia |
-| **Pominięto** | — | poniżej progu lub jednorazowe |
-
-SOP jest encją root — Skill i n8n to sub-resources kroków SOPa (pole `Parent SOP`).
+| **SOP** | autor wzorca (Wojciech triażuje kolejkę co tydzień) | ≥2 |
+| **Skill Backlog** | Maciek (owner skilli) | ≥3 |
+| **n8n Automation** | Maciek (n8n-admin) | ≥2 |
+| **Pominięto** | — (ledger dolicza do progu) | poniżej progu |
 
 ---
 
 ## Compliance
 
-- **Auto-redact:** PESEL, NIP, dane beneficjentów Mini Granty
-- **Auto-skip:** sesje legal (akta-kcs, UDIP, KRS), sesje NDA
-- **Stop conditions:** anti-AI clause → STOP + Wojciech (wfs@off.org.pl)
-- **Privacy:** Krzysztof Chojnowski i Roksana Dziura → `User name (fallback)` (brak Notion account)
+- **Auto-redact (deterministyczny):** PESEL, NIP, IBAN, email, telefon — `scripts/compliance.py`
+- **Auto-skip:** sesje legal (akta-kcs, UDIP, KRS), NDA, `#mini-granty` (PII beneficjentów)
+- **Stop condition:** klauzula anty-AI → STOP + Wojciech (wfs@off.org.pl)
 
 ---
 
-## Konfiguracja
+## Harmonogram
 
-Przed pierwszym użyciem wypełnij `config/notion.yaml`:
-- Notion Person IDs dla każdego membera (Settings → My account → User ID)
-- Sprawdź czy masz dostęp do Knowledge Base DB w Notion
+Strefa Europe/Warsaw, dni robocze.
 
----
-
-## Eskalacja
-
-| Problem | Kontakt |
+| Czas | Akcja |
 |---|---|
-| Tech (skill nie działa, API error) | Wojciech (wfs@off.org.pl) |
-| Compliance (NDA, RODO) | Wojciech |
-| Strategia (jak interpretować wyniki) | Michał (mmm@off.org.pl) |
+| **poniedziałek 10:00** | Weekly scan (ostatnie 7 dni) — wszystkie źródła |
+| **po skanie** | Zapis do Notion + (jeśli High) post na `#ai-feedback` |
+| jednorazowo | Bootstrap — pełny lifetime scan przy pierwszym użyciu |
 
 ---
 
-*knowledge-base v1.1 · OFF AI v3.0 · 2026-05-19*
+## Struktura projektu
+
+```
+knowledge-base/
+├── SKILL.md                  # Główny skill — proces 8-krokowy
+├── FLOW.md                   # Diagramy Mermaid przepływu danych
+├── COLUMNS.md                # Glossary kolumn Notion KB DB
+├── config/
+│   ├── notion.yaml           # Notion DB IDs + Person IDs zespołu
+│   ├── sources.yaml          # Źródła, progi, dedup, state, modele, scan ownership
+│   ├── ownership.yaml        # KANON owner mappingu + eskalacja
+│   └── skills_catalog.yaml   # Katalog skilli OFF (cross-check)
+├── scripts/                  # Deterministyczny rdzeń (Python, stdlib + PyYAML)
+│   ├── kb_lib.py             # similarity/dedup, ROI, normalizacja, fuzzy match
+│   ├── compliance.py         # gate PII (PESEL/NIP/IBAN/email/telefon)
+│   ├── kb_state.py           # ledger kandydatów + watermarki
+│   ├── kb_setup.py           # walidacja configu (gate) + resolve
+│   ├── metrics.py            # rollup skuteczności systemu
+│   └── tests/test_kb.py      # 24 testy jednostkowe
+├── state/                    # Trwała pamięć między skanami (commitowana)
+│   ├── candidates.json
+│   └── watermarks.json
+├── prompts/                  # Gotowe prompty: BOOTSTRAP/WEEKLY × Chat/Cowork/CC
+└── artifacts/                # Auto-gen drafts (SOP/n8n/skill) — cykl życia w README
+```
+
+---
+
+## Wkład w projekt
+
+Pull requesty mile widziane:
+
+1. **Fork** repo i stwórz branch od `main`
+2. Brak konektorów Notion/Slack nie blokuje developmentu rdzenia — `scripts/` działają lokalnie
+3. Przed PR: `python3 -m unittest discover -s scripts/tests` musi przechodzić
+4. Zmieniasz reguły (drzewo, progi, owner)? Edytuj **`config/`** — nie powielaj w docach
+5. `python3 scripts/kb_setup.py validate` przed zmianami w configu
+
+Eskalacja: **tech / compliance** → Wojciech (wfs@off.org.pl) · **strategia** → Michał (mmm@off.org.pl)
+
+---
+
+<div align="center">
+
+Zbudowany dla **Fundacji OFF** · Claude AI · Notion · Python · Slack · Gmail · Google Drive
+
+*knowledge-base v2.2 · OFF AI v3.0 · 2026-05-29*
+
+</div>

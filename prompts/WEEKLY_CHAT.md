@@ -1,6 +1,6 @@
 # Knowledge Base — Weekly Scan Chat
 
-**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** WEEKLY (co poniedziałek 10:00)
+**Wersja:** 2.2 | **Data:** 2026-05-19 | **Tryb:** WEEKLY (co poniedziałek 10:00)
 
 **Przeznaczenie:** Cotygodniowy skan w Claude Chat — ostatnie 7 dni.
 
@@ -11,7 +11,7 @@
 ## PROMPT WEEKLY — skopiuj i wklej w Claude Chat:
 
 ```
-# WEEKLY KNOWLEDGE BASE SCAN v1.1 — Chat
+# WEEKLY KNOWLEDGE BASE SCAN v2.2 — Chat
 
 Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
@@ -49,13 +49,18 @@ Czy jest coś co chcesz wyłączyć lub zawęzić?
 ⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
 
 ## PHASE 0.5: CROSS-CUTTING CONCERNS (Chat — Weekly)
+**Gate konfiguracji (item #1) — STOP jeśli niepełna:**
+Jeśli masz terminal/repo: `python3 scripts/kb_setup.py validate` (exit≠0 → pokaż błędy, `resolve`, STOP).
+W Chat/Cowork sprawdź ręcznie, że `config/notion.yaml → users` i `config/sources.yaml → slack.channel_ids`
+nie są puste — jeśli są, STOP i uzupełnij (inaczej zła atrybucja / martwe kanały).
+
 
 **Budget cap:** ~80K tokenów. Chat nie ma lokalnych JSONL.
 Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz drafty, zaraportuj "Budget cap reached".
 
 **Rate limity MCP:** max 10 wywołań/min. Przy 429: backoff 2s→4s→8s (max 3 próby).
 
-**BEZ SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion.
+**BEZ SQLite / BEZ /runs/ na dysk.** (item #4: lekki stan w `state/` — ledger kandydatów + watermarki, scripts/kb_state.py) Drafty in-memory → Notion.
 
 Zakres: ostatnie 7 dni (od [DATA_TYDZIEŃ_TEMU] do dziś)
 
@@ -152,4 +157,4 @@ Zaktualizuj memory: `knowledge-base: last_run={DATE}, mode=weekly, discoveries={
 
 ---
 
-*Prompt: WEEKLY_CHAT.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: WEEKLY_CHAT.md v2.2 · knowledge-base · msm-glitch/knowledge-base*

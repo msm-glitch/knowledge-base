@@ -1,6 +1,6 @@
 # Knowledge Base — Weekly Scan Cowork
 
-**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** WEEKLY (co poniedziałek 10:00)
+**Wersja:** 2.2 | **Data:** 2026-05-19 | **Tryb:** WEEKLY (co poniedziałek 10:00)
 
 **Przeznaczenie:** Cotygodniowy skan w Cowork — ostatnie 7 dni. Zaplanuj jako scheduled task po bootstrapie.
 
@@ -14,7 +14,7 @@ Zaplanuj cotygodniowe zadanie: Knowledge Base Weekly Scan.
 Harmonogram: co poniedziałek o 10:00 (Europe/Warsaw).
 
 ---
-# WEEKLY KNOWLEDGE BASE SCAN v1.1 — Cowork (Scheduled Task)
+# WEEKLY KNOWLEDGE BASE SCAN v2.2 — Cowork (Scheduled Task)
 
 Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
@@ -42,13 +42,18 @@ Czy jest coś co chcesz wyłączyć lub zawęzić?
 ⛔ **Czekam na Twoje odpowiedzi [1], [2] — dopiero potem zaczynam skan.**
 
 ## PHASE 0.5: CROSS-CUTTING CONCERNS (Cowork — Weekly)
+**Gate konfiguracji (item #1) — STOP jeśli niepełna:**
+Jeśli masz terminal/repo: `python3 scripts/kb_setup.py validate` (exit≠0 → pokaż błędy, `resolve`, STOP).
+W Chat/Cowork sprawdź ręcznie, że `config/notion.yaml → users` i `config/sources.yaml → slack.channel_ids`
+nie są puste — jeśli są, STOP i uzupełnij (inaczej zła atrybucja / martwe kanały).
+
 
 **Budget cap:** ~80K tokenów. Cowork nie ma lokalnych JSONL.
 Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz drafty, zaraportuj "Budget cap reached".
 
 **Rate limity MCP:** max 10 wywołań/min. Przy 429: backoff 2s→4s→8s (max 3 próby).
 
-**BEZ SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion. Odrzucone → `Status = Rejected`.
+**BEZ SQLite / BEZ /runs/ na dysk.** (item #4: lekki stan w `state/` — ledger kandydatów + watermarki, scripts/kb_state.py) Drafty in-memory → Notion. Odrzucone → `Status = Rejected`.
 
 Po odpowiedziach załaduj konfigurację:
 - Notion DB: `collection://b01c168b-17f2-4267-91c6-9286a34e43c0`
@@ -163,4 +168,4 @@ Mode: weekly
 
 ---
 
-*Prompt: WEEKLY_COWORK.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: WEEKLY_COWORK.md v2.2 · knowledge-base · msm-glitch/knowledge-base*

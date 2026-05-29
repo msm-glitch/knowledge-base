@@ -30,7 +30,35 @@ SOP "partner-reaktywacja"
 
 ---
 
+## Orkiestracja: kto skanuje co (item #8)
+
+Problem: 11 osób × weekly, każdy skanuje wspólny #general, Drive i całą skrzynkę → ten sam
+wzorzec wykrywany N razy (koszt × N + N× ryzyko duplikatów, łagodzone tylko przez Pass 3).
+
+Model z `config/sources.yaml → scan_ownership`:
+
+| Źródło | Kto skanuje | Częstotliwość |
+|---|---|---|
+| **Slack, Google Drive** (współdzielone) | JEDEN team-runner (`shared_runner`, domyślnie Maciek) | 1× / tydzień dla całego zespołu |
+| **Claude Code/Chat/Cowork, Gmail** (osobiste) | każdy swoje | 1× / tydzień per osoba |
+
+- **Atrybucja działa nadal:** team-runner ustawia `User` = autor wiadomości (nie runner).
+- Dzięki temu wspólne źródła są skanowane raz, a nie 11×; osobiste sesje skanuje tylko właściciel.
+- Jeśli team-runner niedostępny — fallback: pierwszy weekly w tygodniu przejmuje shared sources
+  (oznacz w podsumowaniu "shared scan by {kto}").
+
+---
+
 ## Krok 0: Pre-flight (zawsze)
+
+**0.0 — Gate konfiguracji (STOP jeśli niepełna):**
+```bash
+python3 scripts/kb_setup.py validate
+```
+- exit `0` → config OK, kontynuuj.
+- exit `≠0` → są błędy krytyczne (puste Notion DB ID lub Slack channel_id dla aktywnych kanałów).
+  Pokaż output, uruchom `python3 scripts/kb_setup.py resolve` (mówi co i skąd uzupełnić) i
+  **NIE zaczynaj skanu** — inaczej dostaniesz złą atrybucję i martwe kanały (item #1).
 
 **0.1 — Wykryj usera:**
 - Claude Code: `git config user.email` LUB `~/.claude/projects/*/memory/user_profile.md`
@@ -127,6 +155,19 @@ Przez Slack MCP (`mcp__8c5de80e`):
 - Kanały z `config/sources.yaml` → `slack.channels` (używaj channel_ids, nie nazw)
 - Szukaj: decyzje, procesy, prośby o pomoc które się powtarzają
 - Pomiń: wiadomości z hasłami, danymi poufnymi
+- **Self-ingestion guard (item #6):** ten skill POSTUJE do `#ai-feedback` i go SKANUJE.
+  Pomiń wiadomości pasujące do `slack.self_ingestion_guard` (prefiksy podsumowań KB + posty
+  bota), inaczej własny raport wpadnie jako "odkrycie" (pętla). WSD-relay obsługuje osobno
+  `wsd_relay_signals`.
+
+### 1G — Watermark (weekly, item #4)
+
+Dla trybu `weekly` skanuj treści **nowsze niż** watermark danego źródła:
+```bash
+python3 scripts/kb_state.py get-watermark --source slack   # → ostatni znacznik lub null
+```
+Po skanie zaktualizuj: `python3 scripts/kb_state.py set-watermark --source slack --ts <ISO>`.
+Dzięki temu weekly nie czyta wszystkiego od nowa (koszt + duplikaty). Bootstrap ignoruje watermark.
 
 ### 1F — Google Drive
 
@@ -139,15 +180,30 @@ Przez Drive MCP (`mcp__7a8eafc1`):
 
 ## Krok 2: Filtr compliance
 
-Przed każdym wpisem do Notion — LLM pass:
+**Dwa etapy: najpierw twardy gate deterministyczny, potem osąd LLM.**
 
+### 2A — Deterministyczny gate PII (must-pass, item #5)
+
+Skanowanie po `skip_patterns` w ścieżce to za mało — PESEL wklejony do "zwykłej" sesji
+przejdzie. Dlatego KAŻDE pole tekstowe wpisu (zwł. `Summary`, `Source examples`) przepuść
+przez regexowy redaktor **zanim** cokolwiek trafi do Notion/Git:
+
+```bash
+echo "$pole_tekstowe" | python3 scripts/compliance.py redact      # zwraca tekst z [REDACTED:TYP]
+echo "$pole_tekstowe" | python3 scripts/compliance.py scan         # {findings, must_block}
 ```
-Sprawdź czy wpis zawiera:
-- Dane osobowe (PESEL, NIP, imiona beneficjentów Mini Granty) → REDACT
+
+- Wykrywa: **PESEL/NIP** (z sumą kontrolną — mało false-positive), **IBAN PL**, email, telefon PL.
+- Jeśli `must_block=true` (PESEL/NIP/IBAN) → użyj zredagowanej wersji; bez redakcji wpis NIE idzie dalej.
+- To jest powtarzalne i nie zależy od osądu modelu.
+
+### 2B — Osąd LLM (rzeczy nieregexowe)
+
+Po gate sprawdź to, czego regex nie złapie:
+- Imiona beneficjentów Mini Granty w kontekście → REDACT
 - Sekrety (hasła, tokeny, API keys) → REDACT + flag Needs review
 - Treści NDA (partner pod NDA) → FLAG, nie zapisuj summary
 - Anti-AI clause → STOP + poinformuj usera
-```
 
 Wątpliwe wpisy → `Needs review = true` (to pole jest w Sessions DB, w Knowledge Base DB użyj `Status = New` z notatką).
 
@@ -169,8 +225,9 @@ Dla każdego draftu sprawdź:
 [ ] 1. Czy wpis przeszedł SKIP RULES? (meta, "stan istniejącego skilla", jednorazowe)
        → sprawdź też skip_meta_patterns w skills_catalog.yaml (regex/contains)
 [ ] 2. Czy proponowana nazwa skilla/SOPa istnieje już w config/skills_catalog.yaml?
-       → fuzzy match na: base_off + extended_uao + extended_extra
-       → JEŚLI MATCH: wymuś [FIX] zamiast [NEW]
+       → uruchom: python3 scripts/kb_lib.py catalog --name "{slug}" --catalog config/skills_catalog.yaml
+       → deterministyczny fuzzy match (substring lub Levenshtein ≤3) na base_off+extended_uao+extended_extra
+       → JEŚLI "matched" ≠ null (prefix_hint=[FIX]): wymuś [FIX] zamiast [NEW]
        → JEŚLI w skip_meta: POMIŃ wpis całkowicie
 [ ] 3. Czy Source URL jest wypełniony (lub jawnie "—")?
        → Slack: MUSI być permalink (slack_get_permalink), NIE app_redirect
@@ -186,8 +243,14 @@ Dla każdego draftu sprawdź:
         → dopisz na końcu Summary: "Triggers obs.: 'fraza1', 'fraza2'..."
 [ ] 11. Jeśli Type=Skill lub n8n: wskaż Parent SOP (slug lub "—" jeśli standalone)
 [ ] 12. Czy occurrence count spełnia minimum per typ?
-        → SOP: ≥2 | Skill: ≥3 | n8n: ≥2
-        → jeśli poniżej progu: flag candidate_{type}, NIE zapisuj do Notion
+        → SOP: ≥2 | Skill: ≥3 | n8n: ≥2 (próg z config/sources.yaml → classification_thresholds)
+        → poniżej progu: NIE zapisuj do Notion, ale ZAPISZ do ledgera (akumulacja między skanami):
+          python3 scripts/kb_state.py record --type "{Type}" --slug "{slug}" --date {Date} \
+              --source "{Source}" --user "{User}" --url "{Source URL}"
+        → na starcie skanu sprawdź kto już dobił do progu:
+          python3 scripts/kb_state.py ready --thresholds config/sources.yaml
+          (te wzorce promujesz do Notion mimo że w bieżącym skanie były <próg; po zapisie:
+           python3 scripts/kb_state.py promote --key "{Type}::{slug}")
 ```
 
 Jeśli ≥1 check fail → popraw draft LUB odrzuć do `rejected_drafts.log`.
@@ -199,17 +262,20 @@ Dla każdego draftu, **przed `notion-create-pages`**, query Notion KB DB:
 
 ```
 query: filter by (Type == draft.Type) AND (Status != "Rejected")
-       AND (Date in [draft.Date - 14d, draft.Date + 14d])
+       AND (Date in [draft.Date - W, draft.Date + W])
 ```
 
-Dla każdego wyniku oblicz **similarity score** względem draftu:
-- Title token overlap (Jaccard) — waga 0.4
-- Skill name match (extract z Title po prefix [NEW]/[FIX]/[BUG]) — waga 0.4
-- User match — waga 0.2
+**Okno W zależy od trybu** (`config/sources.yaml → dedup.window_days`, item #4):
+`bootstrap = 365 dni` (lifetime scan gubił duplikaty starsze niż 2 tyg.), `weekly = 14 dni`.
 
+Similarity liczy **skrypt** (deterministycznie, nie "na oko" — item #3). Zrzuć draft i wyniki
+Notion do JSON i wywołaj:
+```bash
+python3 scripts/kb_lib.py dedup --draft draft.json --existing notion_hits.json
+# → {"similarity": 0.84, "action": "MERGE", "match": {...}}
 ```
-similarity = 0.4 * jaccard(titles) + 0.4 * skill_name_match + 0.2 * user_match
-```
+Wzór (w kb_lib): `similarity = 0.4·jaccard(titles) + 0.4·skill_name_match + 0.2·user_match`.
+Progi (`merge_at`/`flag_at`) są w configu i w kb_lib — spójne.
 
 | similarity | Akcja |
 |---|---|
@@ -230,9 +296,13 @@ Po wszystkich Pass 3 zapisach, oblicz rozkład priorytetów dla tego skanu:
 target_distribution: High=20%, Medium=50%, Low=30%
 ```
 
-Jeśli faktyczny High% > 35%:
-1. Posortuj High'e malejąco po `score = (occurrences × sources × time_saved_min)`
-2. Top 20% zostają High, reszta → Medium (update via `notion-update-page`)
+Nie licz tego ręcznie — zrzuć wpisy do JSON (`[{"id","priority","score"}]`, gdzie
+`score = occurrences × sources × time_saved_min`) i wywołaj skrypt (item #3):
+```bash
+python3 scripts/kb_lib.py normalize --entries entries.json
+# → {"entries":[...], "changes":[...], "high_pct_before":0.6, "high_pct_after":0.2}
+```
+Dla każdej pozycji w `changes` zrób `notion-update-page` (Priority High→Medium).
 
 Rationale: jeśli wszystko jest "High", priorytet traci znaczenie. Zespół musi wiedzieć co BIERZE NAJPIERW.
 
@@ -425,7 +495,7 @@ Jeśli odkrycie pasuje do 2 typów (np. SOP + n8n):
 - Wybierz **dominujący** Type (główne działanie wymagane)
 - W Summary wymień drugi aspekt: "Type: n8n Automation, ale wymaga też SOP-a opisującego kiedy uruchamiać"
 
-### ❌ Zaktualizowane anty-wzorce (v1.1)
+### ❌ Zaktualizowane anty-wzorce
 
 | Anty-wzorzec | Przykład | Co zrobić |
 |---|---|---|
@@ -444,12 +514,16 @@ Jeśli odkrycie pasuje do 2 typów (np. SOP + n8n):
 
 ### Model selection per pass
 
-| Pass | Claude Code | Claude Chat | Claude Cowork |
-|---|---|---|---|
-| Pass 1: Discovery scan | standard Sonnet (opcjonalnie Opus dla głębokiego bootstrapu) | standard Sonnet | standard Sonnet |
-| Pass 2: Enrichment | standard Sonnet | standard Sonnet | standard Sonnet |
-| Pass 3: Quality gates | standard Sonnet | standard Sonnet | standard Sonnet |
-| Pass 4: Anti-duplicate | standard Sonnet (Notion query) | standard Sonnet | standard Sonnet |
+Źródło: `config/sources.yaml → models` (item #9 — środowisko OFF działa na rodzinie 4.x;
+wcześniej było wszędzie nieaktualne "standard Sonnet").
+
+| Pass / tryb | Model | Uwaga |
+|---|---|---|
+| Pass 1: Discovery scan | **Sonnet** | szeroki skan — tani, szybki |
+| Pass 1: token strategy Light | **Haiku** | tylko metadane/tytuły — najtańszy |
+| Pass 1: bootstrap (C) Deep | **Opus** | głębsza analiza JSONL — tylko na żądanie usera |
+| Pass 2: Enrichment | **Sonnet** | |
+| Pass 3: Quality gates / Anti-duplicate | **Sonnet** | liczby i tak liczy skrypt (kb_lib), nie model |
 
 ### Budget cap per run
 
@@ -476,11 +550,18 @@ Jeśli cap osiągnięty przed końcem skanu: zakończ bieżące źródło, przej
 | Anti-AI clause w source | STOP natychmiast, poinformuj usera, nie zapisuj źródła |
 | PII wykryte w drafcie | REDACT przed zapisem; dodaj `Status = New` + notatka "Needs review" |
 
-### Brak lokalnego storage
+### Storage stanu (item #4 — zaktualizowane)
 
-**BEZ SQLite.** Dedup wyłącznie przez Notion query (Pass 3 → `notion-query-database-view`).
+**BEZ SQLite, BEZ zrzutów `/runs/` na dysk.** Drafty bieżącego skanu trzymaj in-memory.
+Dedup żywych wpisów dalej przez Notion query (Pass 3 → `notion-query-database-view`).
 
-**BEZ `/runs/` na dysk.** Drafty trzymaj in-memory do zapisu w Notion. Wpisy odrzucone zapisz w Notion ze `Status = Rejected`. Wpisy do wzbogacenia zapisz ze `Status = Draft` (do triage przez Wojciecha).
+**ALE: lekki, commitowany stan w `state/`** (małe JSON, audytowalne w git):
+- `state/candidates.json` — ledger subprogowych wzorców (akumulacja occurrences między skanami,
+  inaczej Skill `≥3×` widziany 1×/tydzień nigdy nie dobije do progu).
+- `state/watermarks.json` — od kiedy skanować per źródło (weekly nie czyta wszystkiego od nowa).
+
+Obsługa: `scripts/kb_state.py` (patrz `state/README.md`). Wpisy odrzucone → Notion `Status = Rejected`.
+Do wzbogacenia → `Status = Draft` (triage przez Wojciecha).
 
 ---
 
@@ -515,18 +596,21 @@ Parent SOP:          slug parent SOPa (dla Skill/n8n) lub "—" (dla SOP root lu
 ROI score:           occurrences × sources × time_saved_min / impl_size_factor  (auto)
 ```
 
-**Mapowanie Owner per typ wpisu:**
+**Mapowanie Owner per typ wpisu** (lustro `config/ownership.yaml` → `owner_by_kind` — KANON tam):
 
 | Typ wpisu | Owner |
 |---|---|
-| [FIX] istniejącego skilla | skill-creator (Wojciech) |
+| [FIX] istniejącego skilla | owner skilli (Maciek) |
 | [BUG] blokujący | autor wzorca + Wojciech |
-| [NEW] Skill Backlog | skill-creator (Wojciech) |
+| [NEW] Skill Backlog | owner skilli (Maciek) |
 | [NEW] n8n Automation | n8n-admin (Maciek) |
 | [NEW] SOP | autor wzorca |
 | Team-wide (≥3 osoby) | Wojciech + Maciek |
 
-**Implementation size factor:** S=1, M=4, L=12 (do obliczenia ROI).
+> Wartości pochodzą z `config/ownership.yaml`. Jeśli się rozjadą — **config wygrywa**, popraw tabelę.
+> (Wcześniej README mówił Skill→Michał, n8n→Wojciech/Michał — sprzeczność z tą tabelą, item #2.)
+
+**Implementation size factor:** S=1, M=4, L=12 (do obliczenia ROI score — patrz `scripts/kb_lib.py roi`).
 
 **Jak szacować time_saved:**
 - Z wpisów: jeśli source mówi "2h/kampanię, 4× w miesiącu" → 2h×4/4 tyg = 120 min/tydzień
@@ -620,7 +704,7 @@ Po zapisie do Notion każdy wpis ma już wszystkie pola potrzebne do wygenerowan
 |---|---|---|
 | SOP | `artifacts/sops/{Process_slug}.md` | autor wzorca |
 | n8n Automation | `artifacts/n8n/{Flow_name}.json` | Maciek |
-| Skill Backlog | `artifacts/skills/{Skill_name}/SKILL.md` | Wojciech |
+| Skill Backlog | `artifacts/skills/{Skill_name}/SKILL.md` | Maciek |
 
 `[FIX]` wpisy NIE generują nowego artefaktu — owner robi punktową edycję istniejącego pliku (slug w Title wskazuje który).
 
@@ -747,6 +831,11 @@ git push origin {current-branch}
 
 Branch: jeśli skan uruchamiany lokalnie → osobny branch `kb-scan/{YYYY-MM-DD}-{user}`. Jeśli z GitHub Action → push na konfigurowany branch.
 
+**Cykl życia draftu — KANON w [`artifacts/README.md`](artifacts/README.md) (item #7):**
+NIE pushuj draftów na `main`. Review SLA: owner (per `config/ownership.yaml`) przegląda branch
+w 7 dni (cotygodniowy triage). Branch bez aktywności >30 dni → zamknij, wpis Notion `Status=Rejected`.
+Merge draftu → `Status=Implemented`. Bez tego branche `kb-scan/*` mnożą się i gniją.
+
 ### Powiadomienie ownerów
 
 Slack post w Kroku 6 dostaje dodatkową sekcję:
@@ -871,6 +960,18 @@ knowledge-base: last_run={DATE}, mode={MODE}, discoveries={N},
   by_type={SOP:N, Skill:N, n8n:N}, rejected={N}
 ```
 
+## Krok 8.5: Metryki systemu (item #9 — feedback loop)
+
+Raz na jakiś czas (np. miesięcznie) zmierz czy KB faktycznie działa — bez tego nie da się
+stroić progów. Odpytaj Notion KB DB (`notion-query-database-view`), zrzuć wynik do JSON i:
+```bash
+python3 scripts/metrics.py --file notion_export.json
+```
+Patrz na: **High% vs cel 20%** (alert >35% = inflacja priorytetów), **implemented_rate**
+(ile backlogu faktycznie wdrożono), **rejected_rate** (proxy false-positive klasyfikacji),
+**backlog_open + ROI**. Jeśli rejected_rate wysoki → drzewo klasyfikacji za luźne; jeśli
+implemented_rate niski → za dużo szumu albo brak ownerów.
+
 ---
 
 ## Compliance: stop conditions
@@ -897,4 +998,4 @@ Imię: [Twoje imię], Email: [Twój @off.org.pl]
 
 ---
 
-*knowledge-base v1.1 · OFF AI v3.0 · msm-glitch/knowledge-base*
+*knowledge-base v2.2 · OFF AI v3.0 · msm-glitch/knowledge-base*

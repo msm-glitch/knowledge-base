@@ -119,7 +119,7 @@ wsd_relay_signals:
   keywords: ["WSD", "Weekly Skill Discovery", "weekly skill", "weekly discovery"]
   time_window: "Mon 10:00-12:00 Europe/Warsaw"
   action: "set Scan_type=WSD-relay (NOT Bootstrap/Weekly), drop Priority by 1 level"
-  rationale: "Slack #ai-feedback w poniedziałek to outpu WSD — nie nowe odkrycie KB"
+  rationale: "Slack #ai-feedback w poniedziałek to output WSD — nie nowe odkrycie KB"
 
 # Sugestia użycia (Pass 2 weryfikator):
 # 1. Pobierz proponowaną nazwę nowego skilla
