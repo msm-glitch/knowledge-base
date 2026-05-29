@@ -1,6 +1,6 @@
 # Knowledge Base — Bootstrap Chat (lifetime scan)
 
-**Wersja:** 1.1 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
+**Wersja:** 2.2 | **Data:** 2026-05-19 | **Tryb:** BOOTSTRAP (jednorazowy)
 
 **Przeznaczenie:** Wklej w Claude Chat (claude.ai) jednorazowo — lifetime scan historii rozmów + Gmail + Slack + Drive. Po bootstrapie przełącz na `WEEKLY_CHAT.md`.
 
@@ -16,7 +16,7 @@
 ## PROMPT BOOTSTRAP — skopiuj i wklej w Claude Chat:
 
 ```
-# BOOTSTRAP KNOWLEDGE BASE v1.1 — LIFETIME SCAN (Chat)
+# BOOTSTRAP KNOWLEDGE BASE v2.2 — LIFETIME SCAN (Chat)
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan mojej historii rozmów z Claude.
 
@@ -56,11 +56,16 @@ Które rozmowy skanować?
 ⛔ **Czekam na Twoje odpowiedzi [1], [2], [3] — dopiero potem zaczynam skan.**
 
 ## PHASE 0.5: CROSS-CUTTING CONCERNS (Chat)
+**Gate konfiguracji (item #1) — STOP jeśli niepełna:**
+Jeśli masz terminal/repo: `python3 scripts/kb_setup.py validate` (exit≠0 → pokaż błędy, `resolve`, STOP).
+W Chat/Cowork sprawdź ręcznie, że `config/notion.yaml → users` i `config/sources.yaml → slack.channel_ids`
+nie są puste — jeśli są, STOP i uzupełnij (inaczej zła atrybucja / martwe kanały).
+
 
 **Budget cap:** ~80K tokenów (Chat nie ma lokalnych JSONL — skanujemy tylko Chat history + MCP sources).
 Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz zebrane drafty, zaraportuj "Budget cap reached".
 
-**Model:** standard Sonnet dla wszystkich passów.
+**Model:** modele per pass wg `config/sources.yaml → models` (Sonnet: skan · Haiku: token strategy Light · Opus: bootstrap Deep na żądanie).
 
 **Rate limity MCP:** max 10 wywołań/min na źródło. Przy 429: backoff 2s→4s→8s (max 3 próby). Po 3 fail: `source_error`, kontynuuj.
 
@@ -69,7 +74,7 @@ Jeśli cap osiągnięty: zakończ bieżące źródło, zapisz zebrane drafty, za
 - Notion write fail → retry 1× → log
 - Anti-AI clause → STOP natychmiast
 
-**BEZ lokalnego SQLite / BEZ /runs/ na dysk.** Drafty in-memory → Notion. Odrzucone → `Status = Rejected`.
+**BEZ lokalnego SQLite / BEZ /runs/ na dysk.** (item #4: lekki stan w `state/` — ledger kandydatów + watermarki, scripts/kb_state.py) Drafty in-memory → Notion. Odrzucone → `Status = Rejected`.
 
 ## PHASE 1: SCAN — Claude Chat history
 
@@ -242,4 +247,4 @@ Przeskanowano:
 
 ---
 
-*Prompt: BOOTSTRAP_CHAT.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
+*Prompt: BOOTSTRAP_CHAT.md v2.2 · knowledge-base · msm-glitch/knowledge-base*

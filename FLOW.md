@@ -262,4 +262,4 @@ flowchart TD
 
 ---
 
-*FLOW.md v1.1 · knowledge-base · msm-glitch/knowledge-base*
+*FLOW.md v2.2 · knowledge-base · msm-glitch/knowledge-base*

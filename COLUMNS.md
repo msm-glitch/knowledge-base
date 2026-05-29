@@ -33,6 +33,8 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 
 ### Mapowanie Owner per typ wpisu
 
+> Kanon: [`config/ownership.yaml`](config/ownership.yaml) → `owner_by_kind`. Tabela poniżej to lustro.
+
 | Typ wpisu | Owner |
 |---|---|
 | `[FIX]` istniejącego skilla | skill-creator (Wojciech) |
@@ -131,4 +133,4 @@ Każda kolumna odpowiada na pytanie: **po co tu jest i jak ją czytać** (nie ty
 
 ---
 
-*COLUMNS.md · knowledge-base v1.1 · msm-glitch/knowledge-base*
+*COLUMNS.md · knowledge-base v2.2 · msm-glitch/knowledge-base*

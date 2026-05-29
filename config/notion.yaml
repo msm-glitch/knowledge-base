@@ -19,17 +19,20 @@ collections:
 
 # Notion Person IDs — team OFF
 # Pobierz własne ID: w Notion → Settings → My account → "User ID"
+# Walidacja kompletności: python3 scripts/kb_setup.py validate
+# Co i skąd uzupełnić:   python3 scripts/kb_setup.py resolve
+# Owner mapping (kto wdraża) NIE jest tutaj — kanon w config/ownership.yaml.
 users:
   wojciech: "206d872b-594c-81d6-8a6f-0002a2592991"
   michal: ""       # do uzupełnienia
   kamil: ""        # do uzupełnienia
   zuzanna: ""      # do uzupełnienia
-  krzysztof: "FALLBACK"  # brak konta Notion
+  krzysztof: "FALLBACK"  # brak konta Notion → User name (fallback)
   natalia: ""      # do uzupełnienia
   weronika: ""     # do uzupełnienia
-  roksana: "FALLBACK"    # brak konta Notion
+  roksana: "FALLBACK"    # brak konta Notion → User name (fallback)
   bartosz: ""      # do uzupełnienia
-  maciek: "330d872b-594c-818c-9571-0002f4af5f40"       # do uzupełnienia
+  maciek: "330d872b-594c-818c-9571-0002f4af5f40"
   natasza: ""      # do uzupełnienia
 
 slack:

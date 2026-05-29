@@ -29,8 +29,19 @@ knowledge-base/
 ├── README.md                    # Ten plik
 ├── config/
 │   ├── notion.yaml              # Notion DB IDs, user map, Slack channel
-│   ├── sources.yaml             # Konfiguracja źródeł + skip patterns
+│   ├── sources.yaml             # Źródła, progi, dedup, state, modele, scan ownership
+│   ├── ownership.yaml           # KANON: kto wdraża co (owner mapping) + eskalacja
 │   └── skills_catalog.yaml      # Katalog skilli OFF (cross-check)
+├── scripts/                     # Deterministyczny rdzeń (item #3/#4/#5/#9) — patrz scripts/README.md
+│   ├── kb_lib.py                # similarity/dedup, ROI, normalizacja priorytetów, fuzzy match
+│   ├── compliance.py            # gate PII (PESEL/NIP/IBAN/email/telefon) — deterministyczny
+│   ├── kb_state.py              # ledger kandydatów + watermarki per źródło
+│   ├── kb_setup.py              # walidacja configu (gate PRE-FLIGHT) + resolve
+│   ├── metrics.py               # rollup skuteczności systemu
+│   └── tests/test_kb.py         # testy jednostkowe rdzenia
+├── state/                       # Trwała pamięć między skanami (commitowana) — patrz state/README.md
+│   ├── candidates.json          # akumulacja subprogowych wzorców
+│   └── watermarks.json          # od kiedy skanować per źródło
 ├── prompts/
 │   ├── BOOTSTRAP_CHAT.md        # Lifetime scan w Claude Chat (jednorazowo)
 │   ├── BOOTSTRAP_COWORK.md      # Lifetime scan w Cowork (jednorazowo)
@@ -38,7 +49,7 @@ knowledge-base/
 │   ├── WEEKLY_CHAT.md           # 7-day scan w Chat (co poniedziałek)
 │   ├── WEEKLY_COWORK.md         # 7-day scan w Cowork (scheduled task)
 │   └── WEEKLY_CC.md             # 7-day scan w Claude Code (co poniedziałek)
-└── artifacts/                   # Auto-gen drafts (Krok 4.5) — tworzone per scan
+└── artifacts/                   # Auto-gen drafts (Krok 4.5) — cykl życia w artifacts/README.md
     ├── sops/{slug}.md           # SOP draft (template adaptacyjny)
     ├── n8n/{slug}.json          # n8n workflow skeleton
     └── skills/{slug}/SKILL.md   # Skill draft
@@ -116,16 +127,19 @@ Pytania zadawaj po kolei — pierwszy TAK kończy klasyfikację.
 | 3 | Output kreatywny / wariantowy / brand voice OFF? | **Skill Backlog** (min ≥3×) | krok 4 |
 | 4 | Jasny deterministyczny trigger + pipeline? | **n8n Automation** (min ≥2×) | **SOP** (Human) |
 
-**Kto działA:**
+**Kto działa** (kanon: [`config/ownership.yaml`](config/ownership.yaml) — przy rozbieżności config wygrywa):
 
-| Typ | Owner | Próg |
+| Typ | Owner (wdrożenie) | Próg |
 |---|---|---|
-| **SOP** | Wojciech (przegląda co tydzień) | ≥2 wystąpienia |
-| **Skill Backlog** | Michał (builduje skille) | ≥3 wystąpienia |
-| **n8n Automation** | Wojciech / Michał | ≥2 wystąpienia |
-| **Pominięto** | — | poniżej progu lub jednorazowe |
+| **SOP** | autor wzorca (Wojciech triażuje kolejkę co tydzień) | ≥2 wystąpienia |
+| **Skill Backlog** | Wojciech (skill-creator) | ≥3 wystąpienia |
+| **n8n Automation** | Maciek (n8n-admin) | ≥2 wystąpienia |
+| **Pominięto** | — (ledger kandydatów dolicza do progu) | poniżej progu lub jednorazowe |
 
 SOP jest encją root — Skill i n8n to sub-resources kroków SOPa (pole `Parent SOP`).
+
+> Wcześniej ta tabela mówiła Skill→Michał, n8n→Wojciech/Michał — sprzecznie z SKILL.md/COLUMNS.md.
+> Ujednolicone wg `config/ownership.yaml`. Jeśli skille faktycznie builduje Michał — zmień to w configu.
 
 ---
 
@@ -140,9 +154,20 @@ SOP jest encją root — Skill i n8n to sub-resources kroków SOPa (pole `Parent
 
 ## Konfiguracja
 
-Przed pierwszym użyciem wypełnij `config/notion.yaml`:
-- Notion Person IDs dla każdego membera (Settings → My account → User ID)
-- Sprawdź czy masz dostęp do Knowledge Base DB w Notion
+Przed pierwszym użyciem uzupełnij config i **zwaliduj** (skan jest blokowany, jeśli niepełny):
+
+```bash
+python3 scripts/kb_setup.py validate   # gate — exit≠0 gdy brakuje krytycznych pól
+python3 scripts/kb_setup.py resolve    # mówi CO i SKĄD uzupełnić (gotowe fragmenty YAML)
+```
+
+Do uzupełnienia:
+- `config/notion.yaml → users` — Notion Person ID każdego membera (Settings → My account → User ID).
+  Bez tego wpisy lecą do `User name (fallback)`. Krzysztof i Roksana zostają na `FALLBACK` (brak konta).
+- `config/sources.yaml → slack.channel_ids` — ID kanałów (`C...`). Bez nich kanał się **nie zeskanuje**.
+- Sprawdź dostęp do Knowledge Base DB w Notion.
+
+> Owner mapping (kto wdraża) NIE jest w notion.yaml — kanon to [`config/ownership.yaml`](config/ownership.yaml).
 
 ---
 
@@ -156,4 +181,4 @@ Przed pierwszym użyciem wypełnij `config/notion.yaml`:
 
 ---
 
-*knowledge-base v1.1 · OFF AI v3.0 · 2026-05-19*
+*knowledge-base v2.2 · OFF AI v3.0 · 2026-05-29*
