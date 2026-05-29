@@ -30,8 +30,9 @@ import yaml
 NOTION = os.path.join("config", "notion.yaml")
 SOURCES = os.path.join("config", "sources.yaml")
 
-# osoby świadomie bez konta Notion → fallback tekstowy (nie błąd)
-FALLBACK_USERS = {"krzysztof", "roksana"}
+# osoby świadomie bez konta Notion → fallback tekstowy (nie błąd).
+# Aktualnie pusty — cały team OFF ma już konta (Krzysztof/Roksana dodani 2026-05-29).
+FALLBACK_USERS = set()
 
 
 def _load(path):

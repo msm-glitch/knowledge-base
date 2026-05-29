@@ -27,17 +27,16 @@ users:
   michal: "32ad872b-594c-818a-8b64-000242b7429c"     # mmm@off.org.pl
   kamil: "a9c0e01b-4bb3-457f-bbd8-bbf2c192f7cb"      # Kamil Tomkowicz, kt@off.org.pl
   zuzanna: "32cd872b-594c-8114-88a4-0002dcf14f7a"    # Zuzanna Pawłowska, zp@off.org.pl
-  krzysztof: "FALLBACK"  # ma już konto Notion (kkc@): 32ed872b-594c-817e-8b34-0002207cb396 — patrz UWAGA
+  krzysztof: "32ed872b-594c-817e-8b34-0002207cb396"  # Krzysztof Chojnowski, kkc@off.org.pl
   natalia: "33bd872b-594c-8135-a5fd-000247199665"    # Natalia Karska, nak@off.org.pl
   weronika: "32ed872b-594c-81bd-9c1f-00025cbe2199"   # Weronika Szewczuk, ws@off.org.pl
-  roksana: "FALLBACK"    # ma już konto Notion (rd@): 32ed872b-594c-8120-8006-0002b6a69958 — patrz UWAGA
+  roksana: "32ed872b-594c-8120-8006-0002b6a69958"    # Roksana Dziura, rd@off.org.pl
   bartosz: "335d872b-594c-81b7-a28d-0002b3c76cc7"    # Bartosz Duda, bd@off.org.pl
   maciek: "330d872b-594c-818c-9571-0002f4af5f40"     # Maciej Mielczarek, msm@off.org.pl
   natasza: "333d872b-594c-815a-8c0d-00027c80fb37"    # Natasza Markiewicz, nm@off.org.pl
 
-# UWAGA (2026-05-29): Krzysztof i Roksana mają już konta Notion (ID w komentarzach wyżej),
-# wbrew wcześniejszemu założeniu "brak konta". Zostawiono FALLBACK do decyzji — żeby przełączyć
-# na pełną relację person, wstaw ich ID w miejsce "FALLBACK".
+# Wszystkie 11 osób ma teraz Notion Person ID (Krzysztof i Roksana dodani 2026-05-29 —
+# wcześniej byli na FALLBACK przy założeniu "brak konta", które okazało się nieaktualne).
 
 slack:
   channel_ai_feedback: "C0AS00SNGQZ"   # #ai-feedback
