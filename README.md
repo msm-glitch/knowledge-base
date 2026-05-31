@@ -100,7 +100,7 @@ Logika, która musi być powtarzalna, jest w testowanym kodzie (nie „liczona w
 - **normalizacja priorytetów** (anty-inflacja: High ≤ 20%)
 - **fuzzy match** do katalogu skilli → wymusza `[FIX]` zamiast `[NEW]`
 
-`python3 -m unittest discover -s scripts/tests` — 24 testy.
+`python3 -m unittest discover -s scripts/tests` — 41 testów.
 
 </details>
 
@@ -307,7 +307,8 @@ knowledge-base/
 │   ├── kb_state.py           # ledger kandydatów + watermarki
 │   ├── kb_setup.py           # walidacja configu (gate) + resolve
 │   ├── metrics.py            # rollup skuteczności systemu
-│   └── tests/test_kb.py      # 24 testy jednostkowe
+│   ├── sop_schema.py         # walidacja artefaktów wykonywalnych (binding io + SAFETY gate)
+│   └── tests/                # testy jednostkowe (41): test_kb.py + test_sop_schema.py
 ├── state/                    # Trwała pamięć między skanami (commitowana)
 │   ├── candidates.json
 │   └── watermarks.json

@@ -12,7 +12,8 @@ Bez zależności zewnętrznych poza **PyYAML** (tylko walidator/CLI configu). Py
 | `kb_state.py` | ledger kandydatów (akumulacja occurrences) + watermarki per źródło | #4 |
 | `kb_setup.py` | walidacja kompletności configu (gate PRE-FLIGHT) + `resolve` (co/skąd uzupełnić) | #1 |
 | `metrics.py` | rollup skuteczności systemu (implemented/rejected rate, High%-inflacja) | #9 |
-| `tests/test_kb.py` | testy jednostkowe całego rdzenia | — |
+| `sop_schema.py` | walidator artefaktów wykonywalnych (SOP/Skill/n8n): struktura, binding io SOP↔skill↔n8n, SAFETY gate (external-send/irreversible ⇒ approval) | — |
+| `tests/test_kb.py`, `tests/test_sop_schema.py` | testy jednostkowe (41) | — |
 
 ## Jak skill ich używa (mapa na Kroki SKILL.md)
 
@@ -45,6 +46,9 @@ python3 scripts/kb_state.py ready --thresholds config/sources.yaml
 
 # Krok 8+ (feedback loop): metryki z eksportu Notion
 python3 scripts/metrics.py --file notion_export.json
+
+# Krok 4.5+ (gate artefaktów): czy SOP/Skill/n8n są spójne i bezpieczne dla agenta
+python3 scripts/sop_schema.py validate
 ```
 
 ## Testy
