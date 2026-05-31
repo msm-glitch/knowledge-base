@@ -2,7 +2,7 @@
   "name": "crm-stale-partners",
   "nodes": [
     { "name": "Trigger", "type": "n8n-nodes-base.executeWorkflowTrigger", "notes": "Wołany przez SOP partner-reaktywacja krok 1", "parameters": {} },
-    { "name": "Query: CRM", "type": "TBD", "notes": "TBD: dopiąć credential monday_api; filtr last_contact > 90 dni", "parameters": {} },
+    { "name": "Query: CRM", "type": "n8n-nodes-base.mondayCom", "notes": "node z config/n8n_nodes.yaml (monday). Human dopina: credential monday_api + operation getAll z filtrem last_contact > 90 dni", "parameters": {} },
     { "name": "Transform", "type": "n8n-nodes-base.code", "notes": "zmapuj rekordy na obiekt partner (name, contact_person, last_project, last_contact)", "parameters": {} },
     { "name": "Return: stale_partners", "type": "n8n-nodes-base.noOp", "notes": "zwróć listę do SOPa", "parameters": {} },
     { "name": "Error handler", "type": "n8n-nodes-base.slack", "notes": "alert na #ai-feedback do @maciek przy błędzie query", "parameters": {} }
@@ -28,7 +28,7 @@
       "test_plan": "1) uruchom na próbce CRM → sprawdź, że zwraca tylko partnerów >90 dni; 2) pusty wynik → zwraca [], nie błąd",
       "healthcheck": "last_successful_run < 24h"
     },
-    "manual_steps_remaining": "okablowanie węzła Query: CRM + dopięcie credential monday_api w n8n cloud",
+    "manual_steps_remaining": "typy węzłów rozwiązane z katalogu; pozostaje: dopięcie credential monday_api + parametry filtra (operation getAll, last_contact > 90 dni) w n8n cloud",
     "parent_sop": "partner-reaktywacja",
     "notion_entry": "[NEW] partner-reaktywacja — crm-stale-partners",
     "source_url": "https://www.notion.so/3709c230152c40a2a46adbaf2b9f40b1"

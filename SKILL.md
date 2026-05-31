@@ -793,8 +793,14 @@ metrics: { log_to: "state/runs.jsonl", fields: [...] }
 **Reguły mapowania kroków (krytyczne dla agent-readiness):**
 - Krok `Executor: Human` → `automatable: false`, `tool: null`, dopisz `requires_human: "{powód}"`.
 - Krok wskazujący sub-resource → `tool: skill:{slug}` / `n8n:{slug}`.
+- **Krok z akcją na znanym systemie → rozwiąż binding z [`config/connectors.yaml`](config/connectors.yaml)**:
+  dopasuj akcję do funkcji konektora → `tool: mcp:{connector}/{function}` (np. "pobierz z CRM"
+  → `mcp:monday/get_board_items_page`; "zapisz w Notion" → `mcp:notion/notion-create-pages`).
+  To NIE jest zgadywanie — to lookup realnej, istniejącej funkcji. Walidator odrzuci binding
+  spoza katalogu.
+- Konektor o `side_effects: external-send` użyty wprost w kroku → dodaj `id` do `guardrails.irreversible_actions`.
 - Krok z akcją zewnętrzną/nieodwracalną (wysyłka, płatność) → dodaj `id` do `guardrails.irreversible_actions`.
-- Krok bez bindingu → `automatable: false` (NIE zgaduj `tool`).
+- Krok bez bindingu w katalogu → `automatable: false` (NIE zgaduj `tool`).
 - Puste pole → placeholder `[TBD: opisz {field}]`.
 
 ### n8n / Skill — nowa strona w 🛠️ Skills & Automation Backlog
@@ -812,16 +818,27 @@ Mapowanie pól (Skills Backlog):
 | `Notes` | KB entry → Summary | tekst |
 | `Owner` | KB entry → Owner | person |
 
+**Rozwiązywanie typów węzłów z [`config/n8n_nodes.yaml`](config/n8n_nodes.yaml) (podnosi jakość — bez zgadywania):**
+Zanim wypełnisz `nodes[]`, zmapuj na realne node'y:
+- `Trigger` → dopasuj `meta.trigger.type` do `triggers[*].maps_to` → wstaw `triggers[*].node`.
+- Każdy `Data source` / `Destination` → dopasuj (case-insensitive, substring) do `systems[*].aliases`
+  → wstaw `systems[*].node` **i** dopisz `systems[*].credential` do `credentials_required`.
+- `Transform` → `logic.transform.node`. `Error handler` → `error.alert.node`.
+- System **spoza katalogu** → `type: "TBD"` (jawny human-todo) + wpisz go w `manual_steps_remaining`.
+
+Czyli `type: TBD` zostaje TYLKO dla nieznanych systemów. Dla monday/Gmail/Slack/Drive/Sheets/
+Calendar/Notion/Brevo węzeł dostaje realny typ. Parametry i wartości credentials zawsze dopina człowiek.
+
 Body strony — dla **n8n**: blok `code` z językiem `json`:
 
 ```
 {
   "name": "{Flow name}",
   "nodes": [
-    { "name": "Trigger", "type": "n8n-nodes-base.{trigger_type}", "notes": "{Trigger}", "parameters": {} },
-    { "name": "Source: {Data sources[0]}", "type": "TBD", "notes": "{credential needed}", "parameters": {} },
+    { "name": "Trigger", "type": "{resolve: triggers[*].node}", "notes": "{Trigger}", "parameters": {} },
+    { "name": "Source: {Data sources[0]}", "type": "{resolve: systems[*].node lub TBD}", "notes": "{credential z katalogu}", "parameters": {} },
     { "name": "Transform", "type": "n8n-nodes-base.code", "notes": "{Transformations}", "parameters": {} },
-    { "name": "Destination: {Destinations[0]}", "type": "TBD", "notes": "{action}", "parameters": {} },
+    { "name": "Destination: {Destinations[0]}", "type": "{resolve: systems[*].node lub TBD}", "notes": "{action}", "parameters": {} },
     { "name": "Error handler", "type": "n8n-nodes-base.slack", "notes": "{Error handling}", "parameters": {} }
   ],
   "connections": {},
@@ -833,9 +850,10 @@ Body strony — dla **n8n**: blok `code` z językiem `json`:
     "io": { "input": [ {"name","type","required"} ], "output": [ {"name","type"} ] },
     "trigger": { "type": "{cron|webhook|form|db-change}", "spec": "{Trigger}" },
     "side_effects": "{read-only|writes-internal|external-send}",
-    "credentials_required": ["{Credentials}"],
+    "credentials_required": ["{credentials rozwiązane z n8n_nodes.yaml}"],
     "guardrails": { "autonomy": "{autonomous|supervised|human-gated}", "irreversible": false },
     "verification": { "test_plan": "{Test plan}", "healthcheck": "{sygnał że flow żyje}" },
+    "manual_steps_remaining": "{co zostaje człowiekowi: credentials + parametry + ewentualne węzły TBD}",
     "parent_sop": "{Parent SOP}",
     "notion_entry": "{Title}",
     "source_url": "{KB entry URL}"

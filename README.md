@@ -100,7 +100,7 @@ Logika, która musi być powtarzalna, jest w testowanym kodzie (nie „liczona w
 - **normalizacja priorytetów** (anty-inflacja: High ≤ 20%)
 - **fuzzy match** do katalogu skilli → wymusza `[FIX]` zamiast `[NEW]`
 
-`python3 -m unittest discover -s scripts/tests` — 41 testów.
+`python3 -m unittest discover -s scripts/tests` — 48 testów.
 
 </details>
 
@@ -126,8 +126,10 @@ telefon. Wpis z danymi wysokiej pewności nie idzie dalej bez redakcji.
 <details>
 <summary><b>📂 Auto-generacja artefaktów + metryki</b></summary>
 
-Z każdego `[NEW]` wpisu Notion skill generuje draft do `artifacts/` (SOP `.md` /
-n8n `.json` / skill `SKILL.md`) na branchu `kb-scan/{data}` — z cyklem życia i review SLA.
+Z każdego `[NEW]` wpisu KB skill generuje artefakt **prosto do Notion**: SOP → `🪩 Baza SOPs`,
+n8n/Skill → `🛠️ Skills Backlog` (status `Wersja robocza`/`Idea`, owner robi review i awansuje).
+Typy węzłów n8n i bindingi `mcp:` są rozwiązywane z grounded katalogów (`config/n8n_nodes.yaml`,
+`config/connectors.yaml`) — generator wstawia realny node/funkcję zamiast `TBD`/zgadywania.
 `scripts/metrics.py` liczy skuteczność systemu (implemented vs rejected rate, inflacja High%).
 
 </details>
@@ -150,12 +152,13 @@ n8n `.json` / skill `SKILL.md`) na branchu `kb-scan/{data}` — z cyklem życia 
 └──────┬───────────────────┬───────────────────┬────────────────┘
        ▼                   ▼                   ▼
   scripts/             state/              config/
-  kb_lib · compliance  candidates.json     notion · sources
-  kb_state · metrics   watermarks.json     ownership · skills_catalog
+  kb_lib · compliance  candidates.json     notion · sources · ownership
+  kb_state · metrics   watermarks.json     skills_catalog · n8n_nodes · connectors
+  sop_schema
        │
        ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  WYJŚCIE   Notion KB DB  ·  artifacts/*  ·  Slack #ai-feedback │
+│  WYJŚCIE  Notion KB DB → Baza SOPs / Skills Backlog · Slack #ai-feedback │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -220,6 +223,8 @@ knowledge-base **nie używa `.env`** — cała konfiguracja jest w wersjonowanyc
 | `config/sources.yaml` | źródła, progi, okno dedup, state, modele per pass, scan ownership, self-ingestion guard |
 | `config/ownership.yaml` | **kanon** owner mappingu (kto wdraża) + eskalacja |
 | `config/skills_catalog.yaml` | katalog skilli OFF — cross-check `[FIX]` vs `[NEW]` |
+| `config/n8n_nodes.yaml` | grounded katalog realnych node'ów n8n per system OFF (generator wstawia typ zamiast `TBD`) |
+| `config/connectors.yaml` | grounded katalog konektorów MCP + funkcji (binding `mcp:<conn>/<fn>` zamiast zgadywania) |
 
 Walidator jest **gatem** — skan się nie zaczyna, jeśli brakuje krytycznych pól (Notion DB IDs,
 Slack channel IDs dla aktywnych kanałów):
@@ -300,15 +305,17 @@ knowledge-base/
 │   ├── notion.yaml           # Notion DB IDs + Person IDs zespołu
 │   ├── sources.yaml          # Źródła, progi, dedup, state, modele, scan ownership
 │   ├── ownership.yaml        # KANON owner mappingu + eskalacja
-│   └── skills_catalog.yaml   # Katalog skilli OFF (cross-check)
+│   ├── skills_catalog.yaml   # Katalog skilli OFF (cross-check)
+│   ├── n8n_nodes.yaml        # Grounded katalog node'ów n8n per system OFF
+│   └── connectors.yaml       # Grounded katalog konektorów MCP + funkcji
 ├── scripts/                  # Deterministyczny rdzeń (Python, stdlib + PyYAML)
 │   ├── kb_lib.py             # similarity/dedup, ROI, normalizacja, fuzzy match
 │   ├── compliance.py         # gate PII (PESEL/NIP/IBAN/email/telefon)
 │   ├── kb_state.py           # ledger kandydatów + watermarki
 │   ├── kb_setup.py           # walidacja configu (gate) + resolve
 │   ├── metrics.py            # rollup skuteczności systemu
-│   ├── sop_schema.py         # walidacja artefaktów wykonywalnych (binding io + SAFETY gate)
-│   └── tests/                # testy jednostkowe (41): test_kb.py + test_sop_schema.py
+│   ├── sop_schema.py         # walidacja artefaktów (binding io + SAFETY gate + grounding katalogów)
+│   └── tests/                # testy jednostkowe (48): test_kb.py + test_sop_schema.py
 ├── state/                    # Trwała pamięć między skanami (commitowana)
 │   ├── candidates.json
 │   └── watermarks.json

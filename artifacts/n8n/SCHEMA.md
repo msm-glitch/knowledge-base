@@ -1,23 +1,29 @@
 # n8n — kontrakt zdolności (capability contract)
 
 Specyfikacja bloku `meta` w plikach `artifacts/n8n/{slug}.json`. n8n ma **własny runtime**, więc
-nie auto-generujemy w pełni działającego workflow — okablowanie węzłów i credentials to robota
-człowieka po stronie n8n cloud. Warstwą maszynową jest tu **kontrakt w `meta`**, dzięki któremu
-SOP może flow *zawołać* (`tool: n8n:{slug}` — patrz [`../sops/SCHEMA.md`](../sops/SCHEMA.md)) i
-*zweryfikować*, nawet gdy węzły zostają `type: TBD`.
+nie auto-generujemy w pełni działającego workflow — wartości credentials i parametry węzłów to
+robota człowieka po stronie n8n cloud. Warstwą maszynową jest tu **kontrakt w `meta`**, dzięki
+któremu SOP może flow *zawołać* (`tool: n8n:{slug}` — patrz [`../sops/SCHEMA.md`](../sops/SCHEMA.md))
+i *zweryfikować*.
+
+**Typy węzłów są rozwiązywane z katalogu** [`../../config/n8n_nodes.yaml`](../../config/n8n_nodes.yaml):
+dla systemów, których OFF używa (monday, Gmail, Slack, Drive, Sheets, Calendar, Notion, Brevo),
+generator wstawia realny `node` (np. `n8n-nodes-base.gmail`) — to lookup, nie zgadywanie.
+`type: TBD` zostaje tylko dla systemów spoza katalogu.
 
 Wzorzec: [`examples/mass-send-with-tracking.json`](examples/mass-send-with-tracking.json).
 
 ## Zasada: rozdziel kontrakt od implementacji węzłów
 
 ```
-┌─ nodes[] ──────────────────────┐   IMPLEMENTACJA — po stronie n8n; type:TBD = human todo
+┌─ nodes[] ──────────────────────┐   IMPLEMENTACJA — typy z katalogu; credentials+parametry = human
 ├─ meta {} ──────────────────────┤   KONTRAKT ZDOLNOŚCI — agent czyta (io, trigger, guardrails)
 └────────────────────────────────┘
 ```
 
-Agent **nie buduje** flow — *invokuje i ufa* mu jako zdolności. Budowa węzłów (`type: TBD` →
-konkretny node + credentials) zostaje przy człowieku i jest świadomie poza zakresem auto-gen.
+Agent **nie buduje** działającego flow — *invokuje i ufa* mu jako zdolności. Typy węzłów dla
+znanych systemów rozwiązuje z `config/n8n_nodes.yaml`; dopięcie credentials, parametrów i
+ewentualnych węzłów `TBD` (nieznane systemy) zostaje przy człowieku w n8n cloud.
 
 ## Po co — czym to różni się od starego skeletonu
 
@@ -47,11 +53,13 @@ konkretny node + credentials) zostaje przy człowieku i jest świadomie poza zak
 | `parent_sop` | string\|null | Slug SOPa |
 | `notion_entry` / `source_url` | string | Powiązanie ze źródłem (jak dotąd) |
 
-## `nodes[]` — skeleton (bez zmian, ale flagowany)
+## `nodes[]` — skeleton z rozwiązanymi typami
 
-Węzły zostają minimalnym skeletonem (`Trigger → Source → Transform → Destination → Error
-handler`). `type: TBD` to **jawny human-todo** — Maciek dopina konkretny node + credentials.
-Auto-gen nie zgaduje typów węzłów ani sekretów.
+Węzły zostają skeletonem (`Trigger → Source → Transform → Destination → Error handler`), ale
+**typy są rozwiązane z katalogu** `config/n8n_nodes.yaml` dla znanych systemów OFF. `type: TBD`
+to **jawny human-todo** tylko dla systemów spoza katalogu. Auto-gen nie zgaduje typów (lookup z
+katalogu) ani sekretów (credentials zawsze dopina człowiek). Walidator `scripts/sop_schema.py`
+ostrzega, jeśli pojawi się typ węzła spoza katalogu — łapie literówki i halucynacje.
 
 ## Kontrakt wołania (jak SOP/agent konsumuje flow)
 

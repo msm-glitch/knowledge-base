@@ -14,6 +14,8 @@ Sprawdza (deterministycznie, te same dane → ten sam wynik):
   • spójność:  io SOP↔skill↔n8n zgadza się po nazwach (krok woła zdolność)
   • SAFETY:    zdolność external-send / irreversible ⇒ krok MUSI być w guardrails.irreversible_actions
   • integralność: każde id w irreversible_actions istnieje w steps
+  • grounding (jeśli config/ obecny): typy węzłów n8n ∈ config/n8n_nodes.yaml; binding
+                mcp:<conn>/<fn> ∈ config/connectors.yaml — łapie zhalucynowane node/funkcje
 
 Komendy:
   python3 scripts/sop_schema.py validate                # raport czytelny (domyślnie artifacts/)
@@ -68,6 +70,40 @@ def _io_names(io, key) -> list[str]:
 def _required_inputs(io) -> set[str]:
     return {str(d.get("name")) for d in (io or {}).get("input", []) or []
             if isinstance(d, dict) and d.get("required")}
+
+
+# --------------------------------------------------------------------------- #
+# Grounded katalogi (config/) — opcjonalne; brak → checki pominięte
+# --------------------------------------------------------------------------- #
+def _collect_node_types(obj) -> set[str]:
+    """Rekurencyjnie zbiera stringi wyglądające jak realny node n8n (n8n-nodes-base.* / @n8n/*)."""
+    out: set[str] = set()
+    if isinstance(obj, dict):
+        for v in obj.values():
+            out |= _collect_node_types(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            out |= _collect_node_types(v)
+    elif isinstance(obj, str) and (obj.startswith("n8n-nodes-base.") or obj.startswith("@n8n/")):
+        out.add(obj)
+    return out
+
+
+def _load_catalogs(config_dir):
+    """Zwraca (known_node_types:set, connectors:dict). Brak pliku → pusto (check pominięty)."""
+    known_nodes: set[str] = set()
+    connectors: dict = {}
+    if not config_dir:
+        return known_nodes, connectors
+    cdir = Path(config_dir)
+    nodes_f = cdir / "n8n_nodes.yaml"
+    if nodes_f.exists():
+        known_nodes = _collect_node_types(yaml.safe_load(nodes_f.read_text(encoding="utf-8")) or {})
+    conn_f = cdir / "connectors.yaml"
+    if conn_f.exists():
+        data = yaml.safe_load(conn_f.read_text(encoding="utf-8")) or {}
+        connectors = data.get("connectors") or {}
+    return known_nodes, connectors
 
 
 # --------------------------------------------------------------------------- #
@@ -173,7 +209,7 @@ def _validate_skill(name, fm, errors, warnings):
         warnings.append(f"Skill {name}: <5 trigger phrases (zalecane ≥5)")
 
 
-def _discover_n8n(root: Path, errors, warnings) -> dict:
+def _discover_n8n(root: Path, errors, warnings, known_nodes=None) -> dict:
     out = {}
     for p in sorted(root.glob("n8n/**/*.json")):
         rel = p.relative_to(root)
@@ -195,8 +231,23 @@ def _discover_n8n(root: Path, errors, warnings) -> dict:
             warnings.append(f"n8n {rel}: nazwa pliku != slug ('{slug}')")
         meta["_rel"] = str(rel)
         _validate_n8n(slug, meta, errors, warnings)
+        _check_n8n_nodes(slug, data.get("nodes"), known_nodes, warnings)
         out[slug] = meta
     return out
+
+
+def _check_n8n_nodes(slug, nodes, known_nodes, warnings):
+    """Grounding: typ węzła ≠ TBD musi być realnym node z config/n8n_nodes.yaml.
+    Pomijane, gdy katalog niewczytany (known_nodes puste)."""
+    if not known_nodes:
+        return
+    for n in nodes or []:
+        t = n.get("type")
+        if not t or t == "TBD":
+            continue
+        if t not in known_nodes:
+            warnings.append(f"n8n {slug} węzeł '{n.get('name')}': type '{t}' spoza "
+                            f"config/n8n_nodes.yaml (zweryfikuj realność node lub dopisz do katalogu)")
 
 
 def _validate_n8n(slug, meta, errors, warnings):
@@ -275,20 +326,65 @@ def _check_binding(slug, sid, ref, step_in, step_out, dep_io, errors):
 
 
 # --------------------------------------------------------------------------- #
+# Grounded checki — binding mcp:<conn>/<fn> ∈ config/connectors.yaml
+# --------------------------------------------------------------------------- #
+def _collect_mcp(val, where, refs):
+    if isinstance(val, str) and val.startswith("mcp:"):
+        refs.append((where, val))
+
+
+def _catalog_checks(sops, skills, connectors, warnings):
+    """Każde mcp:<conn>/<fn> w SOP/Skill musi wskazywać realny konektor i funkcję z katalogu.
+    Pomijane, gdy connectors puste (katalog niewczytany)."""
+    if not connectors:
+        return
+    refs: list = []
+    for slug, sop in sops.items():
+        for s in sop.get("steps") or []:
+            _collect_mcp(s.get("tool"), f"SOP {slug} krok {s.get('id')}", refs)
+        for i in sop.get("inputs") or []:
+            _collect_mcp(i.get("source"), f"SOP {slug} input {i.get('name')}", refs)
+        for o in sop.get("outputs") or []:
+            _collect_mcp(o.get("destination"), f"SOP {slug} output {o.get('name')}", refs)
+    for name, sk in skills.items():
+        caps = sk.get("capabilities") or {}
+        for c in (caps.get("allow") or []) + (caps.get("deny") or []):
+            _collect_mcp(c, f"Skill {name} capability", refs)
+
+    for where, ref in refs:
+        conn, _, fn = ref[len("mcp:"):].partition("/")
+        if conn not in connectors:
+            warnings.append(f"{where}: konektor '{conn}' w '{ref}' spoza config/connectors.yaml")
+            continue
+        if fn and fn != "*" and fn not in (connectors[conn].get("functions") or []):
+            warnings.append(f"{where}: funkcja '{fn}' w '{ref}' spoza connectors.yaml[{conn}] "
+                            f"(zweryfikuj nazwę lub dopisz do katalogu)")
+
+
+# --------------------------------------------------------------------------- #
 # API + CLI
 # --------------------------------------------------------------------------- #
-def validate(root="artifacts") -> dict:
-    """Zwraca {ok, errors[], warnings[], summary}."""
+def validate(root="artifacts", config_dir=None) -> dict:
+    """Zwraca {ok, errors[], warnings[], summary}.
+
+    config_dir: katalog z grounded katalogami (n8n_nodes.yaml, connectors.yaml). Gdy None,
+    próbuje {root}/../config. Brak → checki groundingu pominięte (nie błąd)."""
     rootp = Path(root)
     errors: list[str] = []
     warnings: list[str] = []
     if not rootp.exists():
         return {"ok": False, "errors": [f"Brak katalogu {root}"], "warnings": []}
 
+    if config_dir is None:
+        guess = rootp.parent / "config"
+        config_dir = str(guess) if guess.exists() else None
+    known_nodes, connectors = _load_catalogs(config_dir)
+
     sops = _discover_sops(rootp, errors, warnings)
     skills = _discover_skills(rootp, errors, warnings)
-    n8n = _discover_n8n(rootp, errors, warnings)
+    n8n = _discover_n8n(rootp, errors, warnings, known_nodes)
     _cross_checks(sops, skills, n8n, errors, warnings)
+    _catalog_checks(sops, skills, connectors, warnings)
 
     return {
         "ok": not errors,

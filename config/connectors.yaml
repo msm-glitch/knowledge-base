@@ -1,0 +1,128 @@
+# Katalog konektorów MCP — grounded reference dla bindingu narzędzi (Krok 4.5)
+#
+# PROBLEM, który to rozwiązuje: generator SOP/Skill zostawiał `tool: null` albo zgadywał
+# binding, bo nie wiedział, jakie funkcje MCP są realnie dostępne w środowisku OFF. Skutek:
+# kroki, które DAŁOBY się związać z realnym narzędziem, lądowały jako [TBD].
+#
+# ZASADA: konwencja bindingu to `mcp:<connector>/<function>` (patrz artifacts/sops/SCHEMA.md).
+# Generator dopasowuje akcję kroku do realnej funkcji z tej tabeli i wpisuje binding zamiast
+# [TBD]. Walidator (scripts/sop_schema.py) ostrzega, gdy artefakt woła `mcp:<conn>/<fn>`, gdzie
+# konektor lub funkcja są spoza katalogu (łapie halucynacje / literówki).
+#
+# `n8n_node` = most do config/n8n_nodes.yaml: ten sam system w SOP (mcp:) i w flow n8n (node).
+# Funkcje = realne nazwy narzędzi MCP dostępnych w tym środowisku (nie wymyślone).
+
+version: "1.0"
+last_updated: "2026-05-31"
+
+connectors:
+  notion:
+    mcp_server: "c078c620-d9f7-4bc3-9683-a6cb738b6625"
+    n8n_node: "n8n-nodes-base.notion"
+    side_effects: writes-internal
+    functions:
+      - notion-create-pages
+      - notion-update-page
+      - notion-fetch
+      - notion-query-database-view
+      - notion-search
+      - notion-create-comment
+      - notion-get-users
+      - notion-move-pages
+      - notion-duplicate-page
+
+  slack:
+    mcp_server: "8c5de80e-c655-4391-b7b9-bf98918015b7"
+    n8n_node: "n8n-nodes-base.slack"
+    side_effects: external-send          # post poza system → traktuj jak wysyłkę
+    functions:
+      - slack_send_message
+      - slack_send_message_draft
+      - slack_schedule_message
+      - slack_read_channel
+      - slack_read_thread
+      - slack_search_public
+      - slack_search_users
+      - slack_add_reaction
+      - slack_list_channel_members
+      - slack_read_user_profile
+
+  gmail:
+    mcp_server: "ab46da28-b53d-4626-8089-1960ae7a5ccf"
+    n8n_node: "n8n-nodes-base.gmail"
+    side_effects: external-send          # send/draft do odbiorcy zewnętrznego
+    functions:
+      - create_draft
+      - search_threads
+      - get_thread
+      - list_drafts
+      - list_labels
+      - label_message
+      - label_thread
+      - unlabel_message
+      - create_label
+
+  drive:
+    mcp_server: "7a8eafc1-2776-4156-9fd7-41a81bb92425"
+    n8n_node: "n8n-nodes-base.googleDrive"
+    side_effects: writes-internal
+    functions:
+      - search_files
+      - read_file_content
+      - download_file_content
+      - create_file
+      - copy_file
+      - get_file_metadata
+      - get_file_permissions
+      - list_recent_files
+
+  monday:
+    mcp_server: "1c11b85a-6e6b-4be9-8499-529d2cdf84fb"
+    n8n_node: "n8n-nodes-base.mondayCom"
+    side_effects: writes-internal
+    functions:
+      - get_board_items_page
+      - get_board_info
+      - get_full_board_data
+      - create_item
+      - change_item_column_values
+      - create_update
+      - create_notification
+      - list_users_and_teams
+      - search
+
+  calendar:
+    mcp_server: "97435a3d-dba5-40c4-844f-b0659700d717"
+    n8n_node: "n8n-nodes-base.googleCalendar"
+    side_effects: writes-internal
+    functions:
+      - create_event
+      - list_events
+      - get_event
+      - update_event
+      - delete_event
+      - respond_to_event
+      - suggest_time
+      - list_calendars
+
+  canva:
+    mcp_server: "6f0b5e08-26f0-4220-828c-4599d2531b5d"
+    n8n_node: null                       # brak dedykowanego node n8n — użyj http jeśli trzeba
+    side_effects: writes-internal
+    functions:
+      - generate-design
+      - generate-design-structured
+      - export-design
+      - get-design
+      - create-design-from-brand-template
+      - search-designs
+
+# --- UŻYCIE W GENERATORZE (Krok 4.5) -----------------------------------------
+# SOP step / Skill capability:
+#   akcja "pobierz z CRM"  → mcp:monday/get_board_items_page
+#   akcja "wyślij maile"   → przez n8n (external-send za bramką), NIE mcp:gmail/send bezpośrednio
+#   akcja "zapisz w Notion"→ mcp:notion/notion-create-pages
+# Reguła bezpieczeństwa: konektor o side_effects=external-send użyty bezpośrednio w kroku SOPa
+# → krok MUSI trafić do guardrails.irreversible_actions (egzekwuje walidator).
+# Funkcja spoza katalogu → NIE zgaduj: zostaw tool:null + [TBD], chyba że to nowa, realna
+# funkcja — wtedy dopisz ją tutaj (katalog jest źródłem prawdy).

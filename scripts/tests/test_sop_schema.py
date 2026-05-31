@@ -65,9 +65,10 @@ def _write_md(path: Path, fm, body="\n# tytuł\nbody\n"):
                     + "---\n" + body, encoding="utf-8")
 
 
-def _write_n8n(path: Path, meta, name="flow"):
+def _write_n8n(path: Path, meta, name="flow", nodes=None):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"name": name, "nodes": [], "connections": {}, "meta": meta}),
+    path.write_text(json.dumps({"name": name, "nodes": nodes or [],
+                                "connections": {}, "meta": meta}),
                     encoding="utf-8")
 
 
@@ -75,6 +76,7 @@ class _Tmp(unittest.TestCase):
     def setUp(self):
         self._d = tempfile.TemporaryDirectory()
         self.root = Path(self._d.name)
+        self._cfg = None
 
     def tearDown(self):
         self._d.cleanup()
@@ -85,11 +87,23 @@ class _Tmp(unittest.TestCase):
     def skill(self, fm):
         _write_md(self.root / "skills" / fm["name"] / "SKILL.md", fm)
 
-    def n8n(self, meta, name=None):
-        _write_n8n(self.root / "n8n" / f"{name or meta['slug']}.json", meta)
+    def n8n(self, meta, name=None, nodes=None):
+        _write_n8n(self.root / "n8n" / f"{name or meta['slug']}.json", meta, nodes=nodes)
 
-    def run_validate(self):
-        return sop_schema.validate(str(self.root))
+    def catalogs(self, node_types=None, connectors=None):
+        """Zapisz minimalne grounded katalogi do osobnego config dir; zwróć ścieżkę."""
+        cdir = self.root / "_config"
+        cdir.mkdir(parents=True, exist_ok=True)
+        nodes = {"systems": {f"s{i}": {"node": t} for i, t in enumerate(node_types or [])}}
+        (cdir / "n8n_nodes.yaml").write_text(yaml.safe_dump(nodes), encoding="utf-8")
+        (cdir / "connectors.yaml").write_text(
+            yaml.safe_dump({"connectors": connectors or {}}), encoding="utf-8")
+        self._cfg = str(cdir)
+        return self._cfg
+
+    def run_validate(self, config_dir="__unset__"):
+        cfg = self._cfg if config_dir == "__unset__" else config_dir
+        return sop_schema.validate(str(self.root), config_dir=cfg)
 
 
 # --------------------------------------------------------------------------- #
@@ -226,6 +240,64 @@ class TestN8nMeta(_Tmp):
         res = self.run_validate()
         self.assertFalse(res["ok"])
         self.assertTrue(any("JSON" in e for e in res["errors"]))
+
+
+# --------------------------------------------------------------------------- #
+# Grounding — node n8n ∈ katalog; binding mcp ∈ connectors (anty-halucynacja)
+# --------------------------------------------------------------------------- #
+class TestGrounding(_Tmp):
+    def test_unknown_n8n_node_type_warns(self):
+        self.catalogs(node_types=["n8n-nodes-base.gmail"])
+        self.n8n(_min_n8n(), nodes=[{"name": "X", "type": "n8n-nodes-base.FAKE"}])
+        res = self.run_validate()
+        self.assertTrue(res["ok"])  # warning, nie error
+        self.assertTrue(any("n8n_nodes.yaml" in w for w in res["warnings"]))
+
+    def test_known_n8n_node_type_no_warning(self):
+        self.catalogs(node_types=["n8n-nodes-base.gmail", "n8n-nodes-base.code"])
+        self.n8n(_min_n8n(), nodes=[{"name": "Send", "type": "n8n-nodes-base.gmail"}])
+        res = self.run_validate()
+        self.assertFalse(any("n8n_nodes.yaml" in w for w in res["warnings"]))
+
+    def test_tbd_node_type_never_warns(self):
+        self.catalogs(node_types=["n8n-nodes-base.gmail"])
+        self.n8n(_min_n8n(), nodes=[{"name": "X", "type": "TBD"}])
+        res = self.run_validate()
+        self.assertFalse(any("n8n_nodes.yaml" in w for w in res["warnings"]))
+
+    def test_unknown_mcp_connector_warns(self):
+        self.catalogs(connectors={"gmail": {"functions": ["create_draft"]}})
+        self.sop(_min_sop(steps=[{"id": 1, "action": "a", "automatable": True,
+                                  "executor": "ai", "tool": "mcp:fakeservice/do",
+                                  "inputs": [], "outputs": []}]))
+        res = self.run_validate()
+        self.assertTrue(res["ok"])
+        self.assertTrue(any("fakeservice" in w for w in res["warnings"]))
+
+    def test_unknown_mcp_function_warns(self):
+        self.catalogs(connectors={"gmail": {"functions": ["create_draft"]}})
+        self.sop(_min_sop(steps=[{"id": 1, "action": "a", "automatable": True,
+                                  "executor": "ai", "tool": "mcp:gmail/not_real",
+                                  "inputs": [], "outputs": []}]))
+        res = self.run_validate()
+        self.assertTrue(any("not_real" in w for w in res["warnings"]))
+
+    def test_known_mcp_binding_no_warning(self):
+        self.catalogs(connectors={"gmail": {"functions": ["create_draft"]}})
+        self.sop(_min_sop(steps=[{"id": 1, "action": "a", "automatable": True,
+                                  "executor": "ai", "tool": "mcp:gmail/create_draft",
+                                  "inputs": [], "outputs": []}]))
+        res = self.run_validate()
+        self.assertFalse(any("connectors.yaml" in w for w in res["warnings"]))
+
+    def test_grounding_skipped_without_config(self):
+        self.sop(_min_sop(steps=[{"id": 1, "action": "a", "automatable": True,
+                                  "executor": "ai", "tool": "mcp:fakeservice/do",
+                                  "inputs": [], "outputs": []}]))
+        self.n8n(_min_n8n(), nodes=[{"name": "X", "type": "n8n-nodes-base.FAKE"}])
+        res = self.run_validate(config_dir=None)
+        self.assertTrue(res["ok"])
+        self.assertFalse(any("spoza config" in w for w in res["warnings"]))
 
 
 if __name__ == "__main__":
