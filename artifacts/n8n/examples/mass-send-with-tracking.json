@@ -2,9 +2,9 @@
   "name": "mass-send-with-tracking",
   "nodes": [
     { "name": "Trigger", "type": "n8n-nodes-base.executeWorkflowTrigger", "notes": "Wołany przez SOP partner-reaktywacja krok 4; wejście: draft_emails", "parameters": {} },
-    { "name": "Source: draft_emails", "type": "TBD", "notes": "TBD: input z poprzedniego kroku SOPa (skill:off-reaktywacja-partnera)", "parameters": {} },
-    { "name": "Send: Gmail", "type": "TBD", "notes": "TBD: dopiąć credential gmail_oauth; wyślij każdy draft", "parameters": {} },
-    { "name": "Log: CRM", "type": "TBD", "notes": "TBD: dopiąć credential monday_api; zapisz kontakt + datę", "parameters": {} },
+    { "name": "Source: draft_emails", "type": "n8n-nodes-base.noOp", "notes": "passthrough: wejście draft_emails z trigger (od skill:off-reaktywacja-partnera)", "parameters": {} },
+    { "name": "Send: Gmail", "type": "n8n-nodes-base.gmail", "notes": "node z config/n8n_nodes.yaml (gmail). Human dopina: credential gmail_oauth + operation send; jeden item = jeden draft", "parameters": {} },
+    { "name": "Log: CRM", "type": "n8n-nodes-base.mondayCom", "notes": "node z config/n8n_nodes.yaml (monday). Human dopina: credential monday_api + zapis kontaktu i daty", "parameters": {} },
     { "name": "Schedule follow-up +7d", "type": "n8n-nodes-base.code", "notes": "ustaw zadanie follow-up za 7 dni", "parameters": {} },
     { "name": "Error handler", "type": "n8n-nodes-base.slack", "notes": "alert na #ai-feedback do @maciek; oznacz niewysłane jako pending (bez duplikatów)", "parameters": {} }
   ],
@@ -29,7 +29,7 @@
       "test_plan": "1) wyślij do 1 testowego partnera → sprawdź dostarczenie; 2) sprawdź wpis w CRM; 3) sprawdź zaplanowany follow-up; 4) zasymuluj błąd wysyłki → alert + brak duplikatu",
       "healthcheck": "last_successful_run < 24h AND error_rate < 0.05"
     },
-    "manual_steps_remaining": "okablowanie węzłów TBD + dopięcie credentials (gmail_oauth, monday_api) w n8n cloud",
+    "manual_steps_remaining": "typy węzłów rozwiązane z katalogu; pozostaje: dopięcie credentials (gmail_oauth, monday_api) + parametry operation/mapowanie pól w n8n cloud",
     "parent_sop": "partner-reaktywacja",
     "notion_entry": "[NEW] partner-reaktywacja — mass-send-with-tracking",
     "source_url": "https://www.notion.so/3709c230152c40a2a46adbaf2b9f40b1"

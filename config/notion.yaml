@@ -5,14 +5,14 @@ parent_page: "356fab98-766f-81eb-8194-f33ebeed7f51"  # 🧠 Claude Knowledge Bas
 
 databases:
   sessions: "62f940a08fb342d79fcfb809e7c7c96c"
-  sops: "deaf78c2362146cea5987eceb3220227"
+  sops: "32cfab98766f8008a156c3e91e4fc606"          # 🪩 Baza SOPs (docelowa baza po promocji)
   skills_backlog: "da811c4f224b4697919d9ed82d33bf76"
   patterns: "bec42f9aeabf43bab20f62d1e8a34f42"
   knowledge_base: "3709c230152c40a2a46adbaf2b9f40b1"
 
 collections:
   sessions: "29da70bd-0746-44e2-a54b-985985aa5022"
-  sops: "935d325d-9e04-4833-a8eb-952d786c022e"
+  sops: "32cfab98-766f-805b-88ad-000be5cc764a"      # kolekcja 🪩 Baza SOPs
   skills_backlog: "bb7f0d54-b122-4fcd-878e-ae4353d771c3"
   patterns: "3f34774e-5e02-4566-ab88-5a0b98078ef5"
   knowledge_base: "b01c168b-17f2-4267-91c6-9286a34e43c0"

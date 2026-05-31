@@ -694,66 +694,86 @@ Sprawdź `config/notion.yaml` → `databases.knowledge_base` — jeśli puste, u
 
 ---
 
-## Krok 4.5: Auto-generacja artefaktów
+## Krok 4.5: Auto-generacja artefaktów → Notion
 
-Po zapisie do Notion każdy wpis ma już wszystkie pola potrzebne do wygenerowania pliku artefaktu. Ten krok zamyka pętlę: z `[NEW]` wpisu Notion → konkretny draft pliku w repo, gotowy do code review przez ownera.
+Po zapisie do Notion każdy wpis ma już wszystkie pola potrzebne do wygenerowania artefaktu.
+Ten krok zamyka pętlę: z `[NEW]` wpisu KB → nowa strona w docelowej bazie Notion (SOPs lub
+Skills Backlog), gotowa do review przez ownera. **Artefakty trafiają bezpośrednio do Notion —
+nie do repo GitHub.**
+
+Dlaczego Notion, nie git: agent działa w Claude Chat/Cowork/Code — wszędzie ma MCP Notion,
+ale nie zawsze ma dostęp do `git push`. Notion jest też widoczny dla całego zespołu bez
+wiedzy o repo.
 
 ### Co generujemy (tylko dla `[NEW]`, nie `[FIX]`/`[BUG]`):
 
-| Type wpisu | Wygenerowany artefakt | Owner do review |
+| Type wpisu | Docelowa baza Notion | Pole `Type` / status |
 |---|---|---|
-| SOP | `artifacts/sops/{Process_slug}.md` | autor wzorca |
-| n8n Automation | `artifacts/n8n/{Flow_name}.json` | Maciek |
-| Skill Backlog | `artifacts/skills/{Skill_name}/SKILL.md` | Maciek |
+| SOP | `🪩 Baza SOPs` (`config/notion.yaml → databases.sops`) | Select: "Wersja robocza" |
+| n8n Automation | `🛠️ Skills & Automation Backlog` (`databases.skills_backlog`) | Type: "Automation" |
+| Skill Backlog | `🛠️ Skills & Automation Backlog` (`databases.skills_backlog`) | Type: "Skill" |
 
-`[FIX]` wpisy NIE generują nowego artefaktu — owner robi punktową edycję istniejącego pliku (slug w Title wskazuje który).
+`[FIX]` wpisy NIE generują nowego artefaktu — owner aktualizuje istniejącą stronę Notion
+(slug w Title wskazuje którą).
 
 ### Zasada: format SOP wynika z realnego użycia (nie z góry)
 
 Przed generacją SOP draftu:
 
-1. **Query Notion SOPs DB** (`config/notion.yaml → databases.sops`) — pobierz 3-5 ostatnich aktywnych SOPów (`Status ∈ {Validated, Implemented}`).
-2. **Wyznacz observed field set** — które pola są wypełnione w ≥60% próbki.
+1. **Query 🪩 Baza SOPs** (`config/notion.yaml → databases.sops`) — pobierz 3-5 ostatnich SOPów ze `Select: Zatwierdzony`.
+2. **Wyznacz observed field set** — które pola `Opis procesu` / `Punkty automatyzacji` / `Trigger procesu` są wypełnione w ≥60% próbki.
 3. **Zbuduj template** = minimum viable (z Schema 4A) ∪ observed field set.
-4. **Jeśli SOPs DB jest puste** (pierwszy run): użyj pełnego starting template ze Schema 4A. Od 2. tygodnia template adaptuje się automatycznie.
+4. **Jeśli baza jest pusta** (pierwszy run): użyj pełnego starting template ze Schema 4A.
 
-Konsekwencja: format draftów odzwierciedla co naprawdę działa w OFF, nie co teoretycznie powinno być. Pola które nikt nie wypełnia same wypadną z template'u.
+Konsekwencja: format draftów odzwierciedla co naprawdę działa w OFF. Pola, których nikt nie wypełnia, same wypadną z template'u.
 
-### SOP — generacja `artifacts/sops/{slug}.md` (format WYKONYWALNY — patrz [`artifacts/sops/SCHEMA.md`](artifacts/sops/SCHEMA.md))
+### SOP — nowa strona w 🪩 Baza SOPs
 
-SOP generowany jest **dwuwarstwowo**: frontmatter YAML (warstwa maszynowa, którą czyta i
-wykonuje agent) + body Markdown (warstwa ludzka do review). Cel: artefakt jest kontraktem
-wykonania, nie tylko notatką. Pełna specyfikacja pól i kontrakt wykonania:
-[`artifacts/sops/SCHEMA.md`](artifacts/sops/SCHEMA.md). Wzorzec: `artifacts/sops/examples/partner-reaktywacja.md`.
+SOP generowany jest **dwuwarstwowo**: frontmatter YAML (warstwa maszynowa, agentowa) +
+body Markdown (warstwa ludzka do review). Pełna specyfikacja:
+[`artifacts/sops/SCHEMA.md`](artifacts/sops/SCHEMA.md). Wzorzec:
+`artifacts/sops/examples/partner-reaktywacja.md`.
 
-Wyciągnij z Notion entry: `Process slug`, `Title`, `Trigger`, `Steps`, `Outputs`,
-`Definition of Done`, `Decisions`, `Inputs`, `Owner`, `Parent SOP` + observed fields. Zmapuj
-na frontmatter wg SCHEMA.md.
+**Krok:** wywołaj `notion-create-pages` z docelową bazą `databases.sops`.
 
-Struktura pliku:
-```markdown
+Mapowanie pól strony w 🪩 Baza SOPs:
+
+| Pole Notion | Źródło | Wartość |
+|---|---|---|
+| `Nazwa procesu` (title) | KB entry → Title (bez prefix `[NEW]`) | tekst |
+| `Trigger procesu` | KB entry → Trigger | tekst |
+| `Opis procesu` | KB entry → Summary (pierwsze 500 znaków) | tekst |
+| `Punkty automatyzacji` | wyciągnij z Steps: lista akcji z `automatable:true` | tekst |
+| `Select` | stały | `"Wersja robocza"` |
+| `Wersja` | stały | `1` |
+| `Link do całego procesu` | KB entry URL | url |
+| `Owner` | KB entry → Owner (via `config/notion.yaml → users`) | relation |
+
+Body strony (treść strony Notion) — jeden blok `code` z językiem `yaml`:
+
+```
 ---
 slug: {Process slug}
 version: 1
 status: draft
 owner: {Owner}
-source_url: "{Source URL}"
+source_url: "{KB entry URL}"
 parent_sop: {Parent SOP slug lub null}
 trigger: { type: {event|schedule|request|webhook}, spec: "...", description: "{Trigger}" }
 executor_overall: {human|ai|auto|hybrid}
 frequency: {Frequency}
-inputs:  [ { name, type, source, required } ]       # typowane — patrz SCHEMA.md
+inputs:  [ { name, type, source, required } ]
 outputs: [ { name, type, destination } ]
-steps:                                               # KAŻDY krok: patrz reguły mapowania niżej
+steps:
   - { id, action, automatable, executor, tool, inputs, outputs, preconditions, postconditions, on_error }
 guardrails: { autonomy_level, irreversible_actions: [], pii_handling, escalation, anti_ai_clause }
-acceptance_criteria: [ ... ]                         # maszynowo sprawdzalne predykaty (z Definition of Done)
+acceptance_criteria: [ ... ]
 metrics: { log_to: "state/runs.jsonl", fields: [...] }
 ---
 
 # {Title bez prefix}
 
-> Auto-gen {Date} · Owner: {Owner} · Status: Draft
+> Auto-gen {Date} · Owner: {Owner} · Status: Wersja robocza
 
 ## Trigger
 {Trigger}
@@ -762,40 +782,64 @@ metrics: { log_to: "state/runs.jsonl", fields: [...] }
 {render steps[]: "N. {action} — executor / tool / automatable"}
 
 ## Decisions
-{render decision[]: Decyzja → Kryterium (predykat) → Decydent → Fallback}
+{render decisions[]: Decyzja → Kryterium → Decydent → Fallback}
 
 ## Definition of Done
 {acceptance_criteria[] jako checklist}
 
-{Dla każdego observed field obecnego w entry: ## {Field name} → wartość}
-
----
-<!-- Auto-generated by knowledge-base scan {Date}. Schema: artifacts/sops/SCHEMA.md. Template derived from {N} prior SOPs ({field_coverage}% coverage). -->
+<!-- Auto-generated {Date}. Schema: artifacts/sops/SCHEMA.md -->
 ```
 
-**Reguły mapowania (krytyczne dla agent-readiness):**
+**Reguły mapowania kroków (krytyczne dla agent-readiness):**
 - Krok `Executor: Human` → `automatable: false`, `tool: null`, dopisz `requires_human: "{powód}"`.
-- Krok wskazujący sub-resource (Related skill/n8n) → `tool: skill:{slug}` / `n8n:{slug}` + `implements: {slug}`.
-- Krok z akcją zewnętrzną/nieodwracalną (wysyłka, płatność, publikacja) → dodaj `id` do
-  `guardrails.irreversible_actions` (runtime wymusi approval przed wykonaniem).
-- Krok bez znanego bindingu → `automatable: false` (NIE zgaduj `tool`).
-- Puste pole z template'u → placeholder `[TBD: opisz {field}]` + komentarz `<!-- wymagane od owner -->`.
+- Krok wskazujący sub-resource → `tool: skill:{slug}` / `n8n:{slug}`.
+- **Krok z akcją na znanym systemie → rozwiąż binding z [`config/connectors.yaml`](config/connectors.yaml)**:
+  dopasuj akcję do funkcji konektora → `tool: mcp:{connector}/{function}` (np. "pobierz z CRM"
+  → `mcp:monday/get_board_items_page`; "zapisz w Notion" → `mcp:notion/notion-create-pages`).
+  To NIE jest zgadywanie — to lookup realnej, istniejącej funkcji. Walidator odrzuci binding
+  spoza katalogu.
+- Konektor o `side_effects: external-send` użyty wprost w kroku → dodaj `id` do `guardrails.irreversible_actions`.
+- Krok z akcją zewnętrzną/nieodwracalną (wysyłka, płatność) → dodaj `id` do `guardrails.irreversible_actions`.
+- Krok bez bindingu w katalogu → `automatable: false` (NIE zgaduj `tool`).
+- Puste pole → placeholder `[TBD: opisz {field}]`.
 
-### n8n — generacja `artifacts/n8n/{flow_name}.json` (kontrakt zdolności w `meta` — patrz [`artifacts/n8n/SCHEMA.md`](artifacts/n8n/SCHEMA.md))
+### n8n / Skill — nowa strona w 🛠️ Skills & Automation Backlog
 
-`nodes[]` zostają skeletonem (`type: TBD` = human-todo), ale **`meta` to kontrakt zdolności** —
-żeby SOP mógł flow zawołać (`tool: n8n:{slug}`) i zweryfikować. Pełna specyfikacja:
-`artifacts/n8n/SCHEMA.md`. Wzorzec: `artifacts/n8n/examples/mass-send-with-tracking.json`.
+**Krok:** wywołaj `notion-create-pages` z docelową bazą `databases.skills_backlog`.
 
-```json
+Mapowanie pól (Skills Backlog):
+
+| Pole Notion | Źródło | Wartość |
+|---|---|---|
+| `Name` (title) | KB entry → Flow name / Skill name | tekst |
+| `Priority` | KB entry → Priority (High→P0, Medium→P1, Low→P2) | select |
+| `Status` | stały | `"Idea"` |
+| `Type` | KB entry type | `"Automation"` / `"Skill"` |
+| `Notes` | KB entry → Summary | tekst |
+| `Owner` | KB entry → Owner | person |
+
+**Rozwiązywanie typów węzłów z [`config/n8n_nodes.yaml`](config/n8n_nodes.yaml) (podnosi jakość — bez zgadywania):**
+Zanim wypełnisz `nodes[]`, zmapuj na realne node'y:
+- `Trigger` → dopasuj `meta.trigger.type` do `triggers[*].maps_to` → wstaw `triggers[*].node`.
+- Każdy `Data source` / `Destination` → dopasuj (case-insensitive, substring) do `systems[*].aliases`
+  → wstaw `systems[*].node` **i** dopisz `systems[*].credential` do `credentials_required`.
+- `Transform` → `logic.transform.node`. `Error handler` → `error.alert.node`.
+- System **spoza katalogu** → `type: "TBD"` (jawny human-todo) + wpisz go w `manual_steps_remaining`.
+
+Czyli `type: TBD` zostaje TYLKO dla nieznanych systemów. Dla monday/Gmail/Slack/Drive/Sheets/
+Calendar/Notion/Brevo węzeł dostaje realny typ. Parametry i wartości credentials zawsze dopina człowiek.
+
+Body strony — dla **n8n**: blok `code` z językiem `json`:
+
+```
 {
   "name": "{Flow name}",
   "nodes": [
-    { "name": "Trigger", "type": "n8n-nodes-base.{trigger_type}", "notes": "{Trigger z Notion}", "parameters": {} },
-    { "name": "Source: {Data sources[0]}", "type": "TBD", "notes": "{credential needed}", "parameters": {} },
-    { "name": "Transform", "type": "n8n-nodes-base.code", "notes": "{Transformations z Notion}", "parameters": {} },
-    { "name": "Destination: {Destinations[0]}", "type": "TBD", "notes": "{action z Notion}", "parameters": {} },
-    { "name": "Error handler", "type": "n8n-nodes-base.slack", "notes": "{Error handling z Notion}", "parameters": {} }
+    { "name": "Trigger", "type": "{resolve: triggers[*].node}", "notes": "{Trigger}", "parameters": {} },
+    { "name": "Source: {Data sources[0]}", "type": "{resolve: systems[*].node lub TBD}", "notes": "{credential z katalogu}", "parameters": {} },
+    { "name": "Transform", "type": "n8n-nodes-base.code", "notes": "{Transformations}", "parameters": {} },
+    { "name": "Destination: {Destinations[0]}", "type": "{resolve: systems[*].node lub TBD}", "notes": "{action}", "parameters": {} },
+    { "name": "Error handler", "type": "n8n-nodes-base.slack", "notes": "{Error handling}", "parameters": {} }
   ],
   "connections": {},
   "meta": {
@@ -804,105 +848,94 @@ metrics: { log_to: "state/runs.jsonl", fields: [...] }
     "status": "draft",
     "capability_ref": "n8n:{Flow name}",
     "io": { "input": [ {"name","type","required"} ], "output": [ {"name","type"} ] },
-    "trigger": { "type": "{cron|webhook|form|db-change}", "spec": "{Trigger z Notion}" },
+    "trigger": { "type": "{cron|webhook|form|db-change}", "spec": "{Trigger}" },
     "side_effects": "{read-only|writes-internal|external-send}",
-    "credentials_required": ["{Credentials z Notion}"],
+    "credentials_required": ["{credentials rozwiązane z n8n_nodes.yaml}"],
     "guardrails": { "autonomy": "{autonomous|supervised|human-gated}", "irreversible": false },
-    "verification": { "test_plan": "{Test plan z Notion}", "healthcheck": "{sygnał że flow żyje}" },
-    "manual_steps_remaining": "{Manual steps remaining}",
+    "verification": { "test_plan": "{Test plan}", "healthcheck": "{sygnał że flow żyje}" },
+    "manual_steps_remaining": "{co zostaje człowiekowi: credentials + parametry + ewentualne węzły TBD}",
     "parent_sop": "{Parent SOP}",
     "notion_entry": "{Title}",
-    "source_url": "{Source URL}"
+    "source_url": "{KB entry URL}"
   }
 }
 ```
 
-**Reguły mapowania:** `io` zgodne z krokiem SOPa, który woła flow. Flow `external-send` lub
-`irreversible: true` → parent SOP MUSI mieć ten krok w `guardrails.irreversible_actions`. Maciek
-importuje JSON do n8n cloud, dopina credentials, testuje wg `verification.test_plan`, a po
-wdrożeniu ustawia `meta.status: active`.
+Body strony — dla **Skill**: blok `code` z językiem `yaml`:
 
-### Skill — generacja `artifacts/skills/{skill_name}/SKILL.md` (kontrakt zdolności — patrz [`artifacts/skills/SCHEMA.md`](artifacts/skills/SCHEMA.md))
-
-Body zostaje prozą (instrukcja dla LLM), ale **frontmatter to kontrakt zdolności** — żeby SOP
-mógł skill zawołać (`tool: skill:{slug}`) i mu zaufać. Pełna specyfikacja: `artifacts/skills/SCHEMA.md`.
-Wzorzec: `artifacts/skills/examples/off-reaktywacja-partnera/SKILL.md`. Z Notion entry:
-
-```markdown
+```
 ---
 name: {Skill name}
 version: 1
 status: draft
-description: {Description z Notion}
+description: {Description}
 parent_sop: {Parent SOP slug lub null}
 triggers:
-{lista Trigger phrases z Notion — minimum 5}
-io:                                  # typowane; nazwy/typy ZGODNE z krokiem SOPa, który woła skill
+{lista trigger phrases — minimum 5}
+io:
   input:  [ { name, type, required } ]
   output: [ { name, type } ]
-capabilities:                        # least-privilege (konwencja tool jak w SOP)
+capabilities:
   allow: [ ... ]
-  deny:  [ ... ]                     # np. mcp:gmail/* jeśli skill drafuje a nie wysyła
+  deny:  [ ... ]
 side_effects: {read-only|writes-internal|external-send}
 autonomy: {autonomous|supervised|human-review-output}
-guardrails: { pii_handling: "redact via script:scripts/compliance.py", requires_human_review: {bool} }
-evals:                               # golden set z Examples — maszynowo sprawdzalny samo-test
+guardrails: { pii_handling: "redact via script:scripts/compliance.py", requires_human_review: false }
+evals:
   - { id: 1, input_ref: "examples#1", assert: "{predykat}" }
 ---
 
 # {Skill name}
 
 ## Kontekst        {Description rozwinięty}
-## Input format    {Input format z Notion}
-## Output format   {Output format z Notion}
-## Examples        {Examples z Notion — 2-3 pary input/output}
-## Style guide     {Persona/style guide z Notion}
-## Edge cases      {Edge cases z Notion}
-## Related skills  {Related skills z Notion}
+## Input format    {Input format}
+## Output format   {Output format}
+## Examples        {Examples — 2-3 pary input/output}
+## Style guide     {Persona/style guide}
+## Edge cases      {Edge cases}
+## Related skills  {Related skills}
 
----
-<!-- Auto-generated by knowledge-base scan {Date}. Schema: artifacts/skills/SCHEMA.md. Source: {Source URL}. -->
+<!-- Auto-generated {Date}. Schema: artifacts/skills/SCHEMA.md -->
 ```
 
 **Reguły mapowania:** `io` musi zgadzać się z `inputs/outputs` kroku SOPa (Parent SOP), który
 woła skill. Skill, który nic nie wysyła → `side_effects: read-only` + `deny` na narzędzia
-wysyłkowe. `Examples` z Notion → `evals[]` z asercjami (proza zostaje w body). Brak danych do
-pola → `[TBD: ...]`.
-
-### Commit i push (po wszystkich generacjach w jednym run)
-
-```bash
-git add artifacts/
-git commit -m "kb-scan {Date}: {N_sop} SOP + {N_n8n} n8n + {N_skill} skill drafts"
-git push origin {current-branch}
-```
-
-Branch: jeśli skan uruchamiany lokalnie → osobny branch `kb-scan/{YYYY-MM-DD}-{user}`. Jeśli z GitHub Action → push na konfigurowany branch.
-
-**Cykl życia draftu — KANON w [`artifacts/README.md`](artifacts/README.md) (item #7):**
-NIE pushuj draftów na `main`. Review SLA: owner (per `config/ownership.yaml`) przegląda branch
-w 7 dni (cotygodniowy triage). Branch bez aktywności >30 dni → zamknij, wpis Notion `Status=Rejected`.
-Merge draftu → `Status=Implemented`. Bez tego branche `kb-scan/*` mnożą się i gniją.
+wysyłkowe. Brak danych → `[TBD: ...]`.
 
 ### Powiadomienie ownerów
 
 Slack post w Kroku 6 dostaje dodatkową sekcję:
 ```
-📂 Drafty wygenerowane:
-  • SOPs: artifacts/sops/{slug}.md ×N
-  • n8n: artifacts/n8n/{slug}.json ×N
-  • Skille: artifacts/skills/{slug}/ ×N
-  → Review na branchu kb-scan/{date}
+📂 Artefakty wygenerowane (Notion):
+  • SOPs: {N} stron w 🪩 Baza SOPs → {link do bazy}
+  • Automation / Skill: {N} stron w 🛠️ Skills Backlog → {link do bazy}
+  Następny krok: owner weryfikuje treść i zmienia status na "Zatwierdzony" / "Spec".
 ```
+
+### Cykl życia artefaktu
+
+```
+KB entry [NEW]
+  ↓ Krok 4.5
+Strona w Baza SOPs (Select: "Wersja robocza") / Skills Backlog (Status: "Idea")
+  ↓ owner weryfikuje treść, edytuje [TBD] pola
+Select: "Zatwierdzony" / Status: "Spec" / "Building"
+  ↓ wdrożenie (n8n cloud / Claude session)
+Select: "Zatwierdzony" (SOP) / Status: "Shipped" (Skill/Automation)
+  ↓ KB entry → Status: Implemented
+```
+
+Brak osobnego git branch dla artefaktów. Strony Notion są wersjonowane wbudowanym history Notion.
+Jeśli artefakt wymaga code review (np. n8n JSON do importu) — owner kopiuje treść z Notion do pliku lokalnie.
 
 ### Error handling
 
 | Sytuacja | Akcja |
 |---|---|
-| Brak `Process slug` / `Flow name` / `Skill name` w Notion entry | Pomiń generację, flag draft `needs_slug`, log w podsumowaniu |
-| Konflikt nazwy pliku (artefakt już istnieje) | Append `-v2` do slug, NIE nadpisuj |
-| Git push fail | Retry 2× backoff; jeśli fail → artefakty zostają lokalnie, log "manual push required" |
-| Notion SOPs DB query fail (template detection) | Fallback na pełny starting template, log "template detection skipped" |
+| Brak slug / flow name / skill name w KB entry | Pomiń generację, flag `needs_slug` w Notes, log w podsumowaniu |
+| Strona w Baza SOPs już istnieje (duplikat slug) | Append ` v2` do Nazwa procesu, dodaj note "duplikat — sprawdź" |
+| `notion-create-pages` fail | Retry 1×; jeśli fail → zapisz content jako komentarz do KB entry, log "manual Notion page required" |
+| Baza SOPs query fail (template detection) | Fallback na pełny starting template, log "template detection skipped" |
 
 ---
 

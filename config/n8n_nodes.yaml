@@ -1,0 +1,109 @@
+# Katalog węzłów n8n — grounded reference dla generatora (Krok 4.5)
+#
+# PROBLEM, który to rozwiązuje: generator n8n wypluwał każdy węzeł jako `type: TBD`,
+# bo "nie zgadujemy typów". Ale dla systemów, których OFF FAKTYCZNIE używa, typ węzła
+# NIE jest zgadywaniem — to deterministyczne mapowanie na realny, istniejący node n8n.
+#
+# ZASADA: generator mapuje system wymieniony w Notion entry (Data sources / Destinations /
+# Trigger) na realny `node` z tej tabeli. Tylko system spoza katalogu → `type: TBD`.
+# Walidator (scripts/sop_schema.py) ostrzega, jeśli artefakt użył typu węzła spoza tej listy
+# (łapie halucynacje). Wartości credentials i parametry węzła zostają robotą człowieka.
+#
+# Źródła node-id: oficjalne n8n-nodes-base (n8n.io/integrations). Wszystkie poniższe to
+# realne, udokumentowane węzły — nie wymyślone.
+
+version: "1.0"
+last_updated: "2026-05-31"
+
+# --- TRIGGERY (czym flow startuje) -------------------------------------------
+triggers:
+  schedule:        { node: "n8n-nodes-base.scheduleTrigger",        maps_to: "cron",      note: "harmonogram (cron/interval)" }
+  webhook:         { node: "n8n-nodes-base.webhook",                maps_to: "webhook",   note: "HTTP webhook (event zewnętrzny)" }
+  form:            { node: "n8n-nodes-base.formTrigger",            maps_to: "form",      note: "n8n Form / submit" }
+  called_by_sop:   { node: "n8n-nodes-base.executeWorkflowTrigger", maps_to: "webhook",   note: "flow wołany jako sub-resource przez SOP" }
+  manual:          { node: "n8n-nodes-base.manualTrigger",          maps_to: "request",   note: "ręczne uruchomienie (testy)" }
+
+# --- SYSTEMY OFF (Data sources / Destinations → realny node + credential) ----
+# `connector` = nazwa krótka spójna z config/connectors.yaml (binding mcp:<connector>/...).
+systems:
+  monday:
+    node: "n8n-nodes-base.mondayCom"
+    credential: monday_api
+    connector: monday
+    aliases: ["CRM", "monday", "monday.com", "baza partnerów", "tablica monday"]
+    common_ops: ["getAll (filtr kolumny)", "create item", "change column values", "get board"]
+  gmail:
+    node: "n8n-nodes-base.gmail"
+    credential: gmail_oauth
+    connector: gmail
+    aliases: ["Gmail", "mail", "email", "poczta", "skrzynka"]
+    common_ops: ["send", "draft", "get messages", "add label"]
+  slack:
+    node: "n8n-nodes-base.slack"
+    credential: slack_api
+    connector: slack
+    aliases: ["Slack", "kanał", "#ai-feedback", "wiadomość na Slacku"]
+    common_ops: ["post message", "post to channel", "add reaction"]
+  google_drive:
+    node: "n8n-nodes-base.googleDrive"
+    credential: google_drive_oauth
+    connector: drive
+    aliases: ["Drive", "Dysk", "Google Drive", "folder", "pliki"]
+    common_ops: ["list/search files", "download", "upload", "copy"]
+  google_sheets:
+    node: "n8n-nodes-base.googleSheets"
+    credential: google_sheets_oauth
+    connector: drive
+    aliases: ["Sheets", "arkusz", "Google Sheets", "tabela", "tracker"]
+    common_ops: ["append row", "read rows", "update row", "lookup"]
+  google_calendar:
+    node: "n8n-nodes-base.googleCalendar"
+    credential: google_calendar_oauth
+    connector: calendar
+    aliases: ["Kalendarz", "Calendar", "spotkanie", "event"]
+    common_ops: ["create event", "list events", "update event"]
+  notion:
+    node: "n8n-nodes-base.notion"
+    credential: notion_api
+    connector: notion
+    aliases: ["Notion", "baza wiedzy", "Knowledge Base", "SOPs", "backlog"]
+    common_ops: ["create page (DB item)", "update page", "query database", "get page"]
+  brevo:
+    node: "n8n-nodes-base.sendInBlue"   # Brevo = dawniej Sendinblue; node-id pozostał sendInBlue
+    credential: sendinblue_api
+    connector: null                     # brak MCP — tylko n8n
+    aliases: ["Brevo", "SMS", "Sendinblue", "kampania SMS", "wiadomość SMS"]
+    common_ops: ["send transactional email", "send SMS", "add contact to list"]
+  http:
+    node: "n8n-nodes-base.httpRequest"
+    credential: http_auth               # zależne od API (header/oauth) — dopina człowiek
+    connector: null
+    aliases: ["API", "HTTP", "REST", "zewnętrzne API", "endpoint"]
+    common_ops: ["GET", "POST", "wywołanie dowolnego REST API bez dedykowanego node"]
+
+# --- LOGIKA / UTIL (przetwarzanie między systemami) --------------------------
+logic:
+  transform:   { node: "n8n-nodes-base.code",          note: "JS/Python — mapowanie, filtr, agregacja danych" }
+  set:         { node: "n8n-nodes-base.set",           note: "ustaw/przemapuj pola (bez kodu)" }
+  branch:      { node: "n8n-nodes-base.if",            note: "warunek if/else (rozgałęzienie)" }
+  switch:      { node: "n8n-nodes-base.switch",        note: "wiele gałęzi wg wartości" }
+  filter:      { node: "n8n-nodes-base.filter",        note: "odrzuć itemy niespełniające warunku" }
+  merge:       { node: "n8n-nodes-base.merge",         note: "połącz dwa strumienie danych" }
+  loop:        { node: "n8n-nodes-base.splitInBatches", note: "iteruj po liście partiami" }
+  wait:        { node: "n8n-nodes-base.wait",          note: "opóźnienie / follow-up +Nd" }
+  passthrough: { node: "n8n-nodes-base.noOp",          note: "przekaż dalej / punkt zwrotny do SOPa" }
+
+# --- OBSŁUGA BŁĘDÓW -----------------------------------------------------------
+error:
+  error_trigger: { node: "n8n-nodes-base.errorTrigger", note: "osobny workflow łapiący błędy" }
+  alert:         { node: "n8n-nodes-base.slack",        note: "alert na #ai-feedback do ownera" }
+
+# --- UŻYCIE W GENERATORZE (Krok 4.5) -----------------------------------------
+# 1. Trigger z Notion → triggers[*].node (po maps_to == meta.trigger.type).
+# 2. Każdy 'Data source' / 'Destination' → dopasuj alias (case-insensitive, substring)
+#    do systems[*] → node + dopisz credential do meta.credentials_required.
+# 3. 'Transformations' → logic.transform.node (code).
+# 4. 'Error handling' → error.alert.node.
+# 5. System NIESPOTKANY w katalogu → type: TBD (jawny human-todo) + flaga w manual_steps_remaining.
+# Po resolucji `type: TBD` zostaje TYLKO dla: nieznanych systemów oraz czysto-okablowaniowych
+# węzłów. Parametry i wartości credentials zawsze dopina człowiek w n8n cloud.

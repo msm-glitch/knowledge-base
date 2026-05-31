@@ -12,8 +12,8 @@ Bez zależności zewnętrznych poza **PyYAML** (tylko walidator/CLI configu). Py
 | `kb_state.py` | ledger kandydatów (akumulacja occurrences) + watermarki per źródło | #4 |
 | `kb_setup.py` | walidacja kompletności configu (gate PRE-FLIGHT) + `resolve` (co/skąd uzupełnić) | #1 |
 | `metrics.py` | rollup skuteczności systemu (implemented/rejected rate, High%-inflacja) | #9 |
-| `sop_schema.py` | walidator artefaktów wykonywalnych (SOP/Skill/n8n): struktura, binding io SOP↔skill↔n8n, SAFETY gate (external-send/irreversible ⇒ approval) | — |
-| `tests/test_kb.py`, `tests/test_sop_schema.py` | testy jednostkowe (41) | — |
+| `sop_schema.py` | walidator artefaktów wykonywalnych (SOP/Skill/n8n): struktura, binding io SOP↔skill↔n8n, SAFETY gate (external-send/irreversible ⇒ approval), grounding (node n8n ∈ `config/n8n_nodes.yaml`; binding `mcp:` ∈ `config/connectors.yaml`) | — |
+| `tests/test_kb.py`, `tests/test_sop_schema.py` | testy jednostkowe (48) | — |
 
 ## Jak skill ich używa (mapa na Kroki SKILL.md)
 
