@@ -271,6 +271,70 @@ Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis w Notion Knowledge Base DB:
 - Skill: Skill name, Description, Trigger phrases (≥5 z source), Input/Output format, Examples, Persona/style guide
 - n8n: Flow name, Trigger, Data sources, Transformations, Destinations, **Error handling** (retry+dead letter+alert), Volume estimate, Manual steps remaining, **Credentials**, **Dependencies**, **Test plan**
 
+## PHASE 6.5: GENERACJA ARTEFAKTÓW (Krok 4.5)
+
+Dla każdego wpisu `[NEW]` zapisanego w PHASE 6 wygeneruj stronę artefaktu w odpowiedniej bazie Notion.
+**Pomijaj `[FIX]` i `[BUG]`** — owner aktualizuje istniejącą stronę na podstawie sluga.
+
+**Krok 1 — przygotuj JSON wpisu:**
+Dla każdego [NEW] stwórz obiekt z polami:
+```json
+{
+  "title":        "<pełny tytuł z prefixem [NEW]>",
+  "type":         "<SOP | Skill Backlog | n8n Automation>",
+  "summary":      "<summary z KB>",
+  "owner":        "<owner imię>",
+  "kb_entry_url": "<URL strony Notion KB>",
+  "date":         "<YYYY-MM-DD>",
+  "trigger":      "<trigger>",
+  "priority":     "<High | Medium | Low>",
+  "parent_sop":   "<slug lub null>",
+  "steps":        ["<krok 1>", "..."],          // tylko SOP
+  "frequency":    "<quarterly | weekly | ...>", // tylko SOP
+  "description":  "<opis>",                     // tylko Skill
+  "trigger_phrases": ["<fraza>", "..."],         // tylko Skill — min 5
+  "data_sources": ["<system>", "..."],           // tylko n8n
+  "destinations": ["<system>", "..."],           // tylko n8n
+  "transformations": "<opis transformacji>",    // tylko n8n
+  "error_handling":  "<opis obsługi błędów>"    // tylko n8n
+}
+```
+
+**Krok 2 — wywołaj skrypt:**
+```bash
+cat > /tmp/kb_entry.json << 'ENTRY'
+{...wypełniony obiekt z Kroku 1...}
+ENTRY
+python3 scripts/artifact_generator.py generate \
+    --entry /tmp/kb_entry.json \
+    --connectors config/connectors.yaml \
+    --n8n-nodes  config/n8n_nodes.yaml \
+    --date $(date +%Y-%m-%d)
+```
+
+**Krok 3 — obsłuż wynik (JSON na stdout):**
+- `errors` zawiera `needs_slug` → **pomiń**, dodaj do Notes KB entry: `needs_slug: true — uzupełnij slug ręcznie`
+- `warnings` → zaloguj w podsumowaniu (nieblokujące)
+- `errors` puste → Krok 4
+
+**Krok 4 — wywołaj `notion-create-pages`:**
+
+| artifact_type | Docelowa baza Notion | Pole `Type` / select |
+|---|---|---|
+| `sop` | `config/notion.yaml → databases.sops` | Select: `"Wersja robocza"` |
+| `skill` | `config/notion.yaml → databases.skills_backlog` | Type: `"Skill"` |
+| `n8n` | `config/notion.yaml → databases.skills_backlog` | Type: `"Automation"` |
+
+Użyj:
+- `notion_fields` jako properties strony
+- `body_content` jako treść strony w bloku code (język: wartość `body_language`)
+
+**Error handling:**
+- Duplikat slug → dopisz ` v2` do tytułu, dodaj note `"duplikat — sprawdź"`
+- `notion-create-pages` fail → retry 1×; jeśli nadal fail → zapisz `body_content` jako komentarz do KB entry
+
+---
+
 ## PHASE 7: CROSS-SOURCE BOOST
 
 Zdeduplikuj odkrycia:

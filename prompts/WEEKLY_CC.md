@@ -135,6 +135,80 @@ Scan type: **Weekly**, Week: `{ISO_YEAR}-W{AKTUALNY_TYDZIEŃ}`, Status: New.
 
 **Pola per Type:** (identyczne jak BOOTSTRAP — patrz SKILL.md Schema 4A/4B/4C)
 
+## PHASE 6.5: GENERACJA ARTEFAKTÓW (Krok 4.5)
+
+Dla każdego wpisu `[NEW]` zapisanego w PHASE 6 wygeneruj stronę artefaktu w odpowiedniej bazie Notion.
+**Pomijaj `[FIX]` i `[BUG]`** — owner aktualizuje istniejącą stronę na podstawie sluga.
+
+**Krok 1 — przygotuj JSON wpisu:**
+Dla każdego [NEW] stwórz obiekt z polami:
+```json
+{
+  "title":        "<pełny tytuł z prefixem [NEW]>",
+  "type":         "<SOP | Skill Backlog | n8n Automation>",
+  "summary":      "<summary z KB>",
+  "owner":        "<owner imię>",
+  "kb_entry_url": "<URL strony Notion KB>",
+  "date":         "<YYYY-MM-DD>",
+  "trigger":      "<trigger>",
+  "priority":     "<High | Medium | Low>",
+  "parent_sop":   "<slug lub null>",
+  "steps":        ["<krok 1>", "..."],          // tylko SOP
+  "frequency":    "<quarterly | weekly | ...>", // tylko SOP
+  "description":  "<opis>",                     // tylko Skill
+  "trigger_phrases": ["<fraza>", "..."],         // tylko Skill — min 5
+  "data_sources": ["<system>", "..."],           // tylko n8n
+  "destinations": ["<system>", "..."],           // tylko n8n
+  "transformations": "<opis transformacji>",    // tylko n8n
+  "error_handling":  "<opis obsługi błędów>"    // tylko n8n
+}
+```
+
+**Krok 2 — wywołaj skrypt:**
+```bash
+# Zapisz entry do pliku tymczasowego i wygeneruj artefakt
+cat > /tmp/kb_entry.json << 'ENTRY'
+{...wypełniony obiekt z Kroku 1...}
+ENTRY
+python3 scripts/artifact_generator.py generate \
+    --entry /tmp/kb_entry.json \
+    --connectors config/connectors.yaml \
+    --n8n-nodes  config/n8n_nodes.yaml \
+    --date $(date +%Y-%m-%d)
+```
+
+**Krok 3 — obsłuż wynik (JSON na stdout):**
+- `errors` niepuste i zawiera `needs_slug` → **pomiń generację**, dodaj do Notes KB entry: `needs_slug: true — uzupełnij slug ręcznie`
+- `warnings` → zaloguj w podsumowaniu (nieblokujące)
+- `errors` puste → przejdź do Kroku 4
+
+**Krok 4 — wywołaj `notion-create-pages`:**
+
+| artifact_type | Docelowa baza Notion | Pole `Type` / select |
+|---|---|---|
+| `sop` | `config/notion.yaml → databases.sops` | Select: `"Wersja robocza"` |
+| `skill` | `config/notion.yaml → databases.skills_backlog` | Type: `"Skill"` |
+| `n8n` | `config/notion.yaml → databases.skills_backlog` | Type: `"Automation"` |
+
+Użyj:
+- `notion_fields` jako właściwości (properties) strony
+- `body_content` jako treść strony w bloku code (język: wartość `body_language`)
+
+**Error handling:**
+- Duplikat slug w bazie → dopisz ` v2` do `Nazwa procesu` / `Name`, dodaj note `"duplikat — sprawdź"`
+- `notion-create-pages` fail → retry 1×; jeśli nadal fail → zapisz `body_content` jako komentarz do KB entry, log `"manual Notion page required: <slug>"`
+
+**Krok 5 — dodaj sekcję do podsumowania PHASE 7:**
+```
+📂 Artefakty wygenerowane (Notion):
+  • SOPs:             N stron w 🪩 Baza SOPs
+  • Skill / Automation: N stron w 🛠️ Skills Backlog
+  • Pominięto (needs_slug / [FIX]): N
+  Następny krok: owner weryfikuje [TBD] pola i zmienia status.
+```
+
+---
+
 ## PHASE 7: OUTPUT
 
 ```
