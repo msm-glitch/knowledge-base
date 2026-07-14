@@ -15,7 +15,7 @@
 
 Przeprowadź cotygodniowy skan Knowledge Base — ostatnie 7 dni.
 
-Uruchom skill `knowledge-base` z repozytorium `msm-glitch/knowledge-base` w trybie `weekly`.
+Uruchom zainstalowany skill `knowledge-base` w trybie `weekly` (skill jest wgrany do Claude — nie ładuj go z repozytorium; jeśli masz lokalny checkout, użyj go tylko do skryptów `scripts/` i `config/`).
 
 ## PHASE 0: PRE-FLIGHT — STOP, CZEKAM NA TWOJE ODPOWIEDZI
 

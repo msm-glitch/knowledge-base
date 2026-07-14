@@ -105,7 +105,8 @@ Przez Gmail MCP, użyj `config/sources.yaml → gmail.query_spec.bootstrap`:
 ## PHASE 3: SCAN — Slack
 
 Przez Slack MCP, użyj `config/sources.yaml → slack`, lookback 90 dni:
-- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team, #mini-granty
+- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team
+- ⛔ #mini-granty WYKLUCZONY (PII beneficjentów) — patrz `config/sources.yaml → slack.excluded_channels`
 - Szukaj: pytania powtarzające się, frustracje, decyzje
 - SKIP: hasła, tokeny
 
