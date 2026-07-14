@@ -1,3 +1,19 @@
+---
+name: knowledge-base
+description: >-
+  Skanuje źródła zespołu OFF (Gmail, Slack, Google Drive oraz sesje Claude
+  Code/Chat/Cowork) w poszukiwaniu powtarzalnych wzorców pracy i klasyfikuje je
+  do Notion jako SOP, Skill Backlog lub automatyzację n8n. Użyj, gdy user prosi
+  o "uruchom knowledge-base", "skan wiedzy", "weekly scan", "bootstrap KB",
+  "przegląd wiedzy operacyjnej", albo o wykrycie procesów do udokumentowania lub
+  zautomatyzowania. Ma deterministyczny rdzeń (dedup, ROI, normalizacja
+  priorytetów, gate PII) i auto-generuje artefakty SOP/Skill/n8n do Notion.
+metadata:
+  version: "2.3"
+  owner: maciek
+  homepage: "https://github.com/msm-glitch/knowledge-base"
+---
+
 # knowledge-base
 
 Skill do zbierania wiedzy operacyjnej zespołu OFF z wielu źródeł (Gmail, Slack, Google Drive, sesje Claude) i klasyfikowania odkryć jako: SOP, Skill Backlog lub n8n Automation — bezpośrednio do Notion.
@@ -142,7 +158,8 @@ Dla każdej sesji: tytuł, data, skille, domena, wynik.
 
 ### 1D — Gmail
 
-Przez Gmail MCP (`mcp__ab46da28`):
+Przez konektor **Gmail MCP** (binding kanoniczny: `config/connectors.yaml → connectors.gmail`;
+nazwy narzędzi zależą od środowiska Claude — nie zaszywaj hasha serwera w skillu):
 - Szukaj wątków z keywords i query specs z `config/sources.yaml` → `gmail.query_spec`
 - Filtruj: nie SPAM, nie TRASH
 - Odnotuj: nadawca/odbiorca, temat, czy sugeruje powtarzalny proces
@@ -151,7 +168,7 @@ Przez Gmail MCP (`mcp__ab46da28`):
 
 ### 1E — Slack
 
-Przez Slack MCP (`mcp__8c5de80e`):
+Przez konektor **Slack MCP** (binding kanoniczny: `config/connectors.yaml → connectors.slack`):
 - Kanały z `config/sources.yaml` → `slack.channels` (używaj channel_ids, nie nazw)
 - Szukaj: decyzje, procesy, prośby o pomoc które się powtarzają
 - Pomiń: wiadomości z hasłami, danymi poufnymi
@@ -159,6 +176,13 @@ Przez Slack MCP (`mcp__8c5de80e`):
   Pomiń wiadomości pasujące do `slack.self_ingestion_guard` (prefiksy podsumowań KB + posty
   bota), inaczej własny raport wpadnie jako "odkrycie" (pętla). WSD-relay obsługuje osobno
   `wsd_relay_signals`.
+
+### 1F — Google Drive
+
+Przez konektor **Google Drive MCP** (binding kanoniczny: `config/connectors.yaml → connectors.drive`):
+- Foldery z `config/sources.yaml` → `google_drive.folders`
+- Nowe/zmienione pliki w zakresie dat z `google_drive.query_spec.lookback`
+- Odnotuj: tytuł, typ dokumentu, czy to procedura/instrukcja/szablon
 
 ### 1G — Watermark (weekly, item #4)
 
@@ -168,13 +192,6 @@ python3 scripts/kb_state.py get-watermark --source slack   # → ostatni znaczni
 ```
 Po skanie zaktualizuj: `python3 scripts/kb_state.py set-watermark --source slack --ts <ISO>`.
 Dzięki temu weekly nie czyta wszystkiego od nowa (koszt + duplikaty). Bootstrap ignoruje watermark.
-
-### 1F — Google Drive
-
-Przez Drive MCP (`mcp__7a8eafc1`):
-- Foldery z `config/sources.yaml` → `google_drive.folders`
-- Nowe/zmienione pliki w zakresie dat z `google_drive.query_spec.lookback`
-- Odnotuj: tytuł, typ dokumentu, czy to procedura/instrukcja/szablon
 
 ---
 
@@ -1079,4 +1096,4 @@ Imię: [Twoje imię], Email: [Twój @off.org.pl]
 
 ---
 
-*knowledge-base v2.2 · OFF AI v3.0 · msm-glitch/knowledge-base*
+*knowledge-base v2.3 · OFF AI v3.0 · msm-glitch/knowledge-base*
