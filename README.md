@@ -100,7 +100,7 @@ Logika, która musi być powtarzalna, jest w testowanym kodzie (nie „liczona w
 - **normalizacja priorytetów** (anty-inflacja: High ≤ 20%)
 - **fuzzy match** do katalogu skilli → wymusza `[FIX]` zamiast `[NEW]`
 
-`python3 -m unittest discover -s scripts/tests` — 48 testów.
+`python3 -m unittest discover -s scripts/tests` — 60 testów.
 
 </details>
 
@@ -207,9 +207,28 @@ python3 scripts/kb_setup.py resolve     # mówi CO i SKĄD uzupełnić
 # 3. Uruchom testy rdzenia
 python3 -m unittest discover -s scripts/tests -v
 
-# 4. Odpal skan — wklej prompt z prompts/ w Claude
+# 4. (opcjonalnie) sprawdź, czy skill wgra się do Claude
+python3 scripts/skill_manifest.py validate
+
+# 5. Odpal skan — wklej prompt z prompts/ w Claude
 #    (najpierw bootstrap, potem co tydzień weekly)
 ```
+
+### Instalacja jako skill Claude
+
+`SKILL.md` ma frontmatter (`name` + `description`) zgodny ze specyfikacją Claude Agent Skills,
+więc repo działa też jako **instalowalny skill**. Skopiuj katalog repo do skilli Claude:
+
+```bash
+# Claude Code (CLI) — skille projektowe:
+mkdir -p .claude/skills/knowledge-base
+cp -r SKILL.md scripts config state artifacts .claude/skills/knowledge-base/
+
+python3 scripts/skill_manifest.py validate    # gate: frontmatter poprawny → skill się wgra
+```
+
+Gate `skill_manifest.py` waliduje manifest deterministycznie (jak `kb_setup.py` waliduje config):
+`name` kebab-case ≤64 znaki, `description` ≤1024 znaki, dozwolone klucze frontmattera.
 
 ---
 
@@ -315,7 +334,8 @@ knowledge-base/
 │   ├── kb_setup.py           # walidacja configu (gate) + resolve
 │   ├── metrics.py            # rollup skuteczności systemu
 │   ├── sop_schema.py         # walidacja artefaktów (binding io + SAFETY gate + grounding katalogów)
-│   └── tests/                # testy jednostkowe (48): test_kb.py + test_sop_schema.py
+│   ├── skill_manifest.py     # gate instalowalności skilla (frontmatter name/description wg spec Claude)
+│   └── tests/                # testy jednostkowe (60): test_kb.py + test_sop_schema.py + test_skill_manifest.py
 ├── state/                    # Trwała pamięć między skanami (commitowana)
 │   ├── candidates.json
 │   └── watermarks.json
@@ -334,6 +354,7 @@ Pull requesty mile widziane:
 3. Przed PR: `python3 -m unittest discover -s scripts/tests` musi przechodzić
 4. Zmieniasz reguły (drzewo, progi, owner)? Edytuj **`config/`** — nie powielaj w docach
 5. `python3 scripts/kb_setup.py validate` przed zmianami w configu
+6. Zmieniasz frontmatter `SKILL.md`? `python3 scripts/skill_manifest.py validate` (gate instalowalności)
 
 Eskalacja: **tech / compliance** → Wojciech (wfs@off.org.pl) · **strategia** → Michał (mmm@off.org.pl)
 
@@ -343,6 +364,6 @@ Eskalacja: **tech / compliance** → Wojciech (wfs@off.org.pl) · **strategia** 
 
 Zbudowany dla **Fundacji OFF** · Claude AI · Notion · Python · Slack · Gmail · Google Drive
 
-*knowledge-base v2.2 · OFF AI v3.0 · 2026-05-29*
+*knowledge-base v2.3 · OFF AI v3.0 · 2026-07-14*
 
 </div>

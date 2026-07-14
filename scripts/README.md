@@ -13,7 +13,8 @@ Bez zależności zewnętrznych poza **PyYAML** (tylko walidator/CLI configu). Py
 | `kb_setup.py` | walidacja kompletności configu (gate PRE-FLIGHT) + `resolve` (co/skąd uzupełnić) | #1 |
 | `metrics.py` | rollup skuteczności systemu (implemented/rejected rate, High%-inflacja) | #9 |
 | `sop_schema.py` | walidator artefaktów wykonywalnych (SOP/Skill/n8n): struktura, binding io SOP↔skill↔n8n, SAFETY gate (external-send/irreversible ⇒ approval), grounding (node n8n ∈ `config/n8n_nodes.yaml`; binding `mcp:` ∈ `config/connectors.yaml`) | — |
-| `tests/test_kb.py`, `tests/test_sop_schema.py` | testy jednostkowe (48) | — |
+| `skill_manifest.py` | gate instalowalności skilla: frontmatter `SKILL.md` (`name` kebab-case ≤64, `description` ≤1024) wg spec Claude Agent Skills — bez tego skill nie wgra się do Claude | — |
+| `tests/test_kb.py`, `tests/test_sop_schema.py`, `tests/test_skill_manifest.py` | testy jednostkowe (60) | — |
 
 ## Jak skill ich używa (mapa na Kroki SKILL.md)
 
@@ -49,6 +50,9 @@ python3 scripts/metrics.py --file notion_export.json
 
 # Krok 4.5+ (gate artefaktów): czy SOP/Skill/n8n są spójne i bezpieczne dla agenta
 python3 scripts/sop_schema.py validate
+
+# Pre-publish (gate instalowalności): czy SKILL.md wgra się do Claude
+python3 scripts/skill_manifest.py validate
 ```
 
 ## Testy
