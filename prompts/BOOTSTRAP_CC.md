@@ -17,7 +17,7 @@
 
 Jestem członkiem zespołu Fundacji Our Future Foundation (OFF). Przeprowadź JEDNORAZOWY Bootstrap Knowledge Base — lifetime scan.
 
-Uruchom skill `knowledge-base` z repozytorium `msm-glitch/knowledge-base` w trybie `bootstrap`.
+Uruchom zainstalowany skill `knowledge-base` w trybie `bootstrap` (skill jest wgrany do Claude — nie ładuj go z repozytorium; jeśli masz lokalny checkout, użyj go tylko do skryptów `scripts/` i `config/`).
 
 ## PHASE 0: PRE-FLIGHT
 
@@ -150,22 +150,23 @@ Dla każdej sesji wyciągnij:
 
 ## PHASE 2: SCAN — Gmail
 
-Przez Gmail MCP (`mcp__ab46da28`), użyj `config/sources.yaml → gmail.query_spec.bootstrap`:
+Przez konektor Gmail MCP (binding: `config/connectors.yaml → connectors.gmail`), użyj `config/sources.yaml → gmail.query_spec.bootstrap`:
 - Query: `(decyzja OR pipeline OR SOP OR powtarzalny OR automatyzacja OR procedura OR szablon) -label:SPAM -label:TRASH`
 - Lookback: 90 dni
 - SKIP: wątki z PESEL, NIP, danymi osobowymi → REDACT summary
 
 ## PHASE 3: SCAN — Slack
 
-Przez Slack MCP (`mcp__8c5de80e`), użyj `config/sources.yaml → slack`:
+Przez konektor Slack MCP (binding: `config/connectors.yaml → connectors.slack`), użyj `config/sources.yaml → slack`:
 - Kanały według `channel_ids` (nie nazw), lookback 90 dni
-- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team, #mini-granty, #full-team
+- Kanały: #general, #ai-feedback (C0AS00SNGQZ), #planer-dnia, #brand-team, #full-team
+- ⛔ #mini-granty WYKLUCZONY (PII beneficjentów) — patrz `config/sources.yaml → slack.excluded_channels`
 - Szukaj: pytania które się powtarzają, prośby o pomoc, decyzje, frustracje
 - SKIP: wiadomości z hasłami, tokenami, danymi poufnymi
 
 ## PHASE 4: SCAN — Google Drive
 
-Przez Drive MCP (`mcp__7a8eafc1`), folder `1U10_VXe_qxoYOlrSyIpgQKXOUy-og1D-`, lookback 90 dni:
+Przez konektor Google Drive MCP (binding: `config/connectors.yaml → connectors.drive`), folder `1U10_VXe_qxoYOlrSyIpgQKXOUy-og1D-`, lookback 90 dni:
 - Odnotuj: tytuły, typy (instrukcja/szablon/raport), czy sugerują powtarzalny proces
 
 ## PHASE 5: KLASYFIKACJA — rozłączne drzewo 4-krokowe
@@ -262,7 +263,7 @@ Dla każdego odkrycia (Type ≠ POMIŃ) stwórz wpis w Notion Knowledge Base DB:
 - User: Notion Person ID z `config/notion.yaml` (lub User name fallback)
 - Source URL, Source examples (2-3 linki)
 - Occurrences, Sources count, Time saved (min/week), Implementation size
-- **Owner** (mapuj wg typu: SOP→autor, Skill→Wojciech, n8n→Maciek)
+- **Owner** (mapuj wg `config/ownership.yaml → owner_by_kind`: SOP→autor, Skill→Maciek, n8n→Maciek)
 - **Parent SOP** (slug lub `—`)
 - ROI score (auto)
 
